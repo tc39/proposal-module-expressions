@@ -74,9 +74,15 @@ worker.postMessage(module { export function fn() { return "hello!" } });
 
 Maybe it would be possible to store an inline module in IndexedDB as well, but this is more debatable, as persistent code could be a security risk.
 
-## Security
+## Integration with CSP
 
-The semantics of inline modules are basically the same as the module contents being in a `data:,` URL, except that, for CSP, they would always be considered in the sources list (since it's part of a resource that was already loaded as script).
+Content Security Policy (CSP) has two knobs which are relevant to inline modules
+- Turning off `eval`, which also turns off other APIs which parse JavaScript. `eval` is disabled by default.
+- Restricting the set of URLs allowed for sources, which also disables importing data URLs. By default, the set is unlimited.
+
+Modules already allow the no-`eval` condition to be met: As modules are retrieved with `fetch`, they are not considered from `eval`, whether through `new Worker()` or `Realm.prototype.import`. Inline modules follow this: as they are parsed in syntax with the surrounding JavaScript code, they cannot be a vector for injection attacks, and they are not blocked by this condition.
+
+The source list restriction is then applied to modules. The semantics of inline modules are basically equivalent to `data:` URLs, with the distinction that they would always be considered in the sources list (since it's part of a resource that was already loaded as script).
 
 ## Optimization potential
 
@@ -85,3 +91,7 @@ The hope would be that inline modules are just as optimizable as normal modules 
 ## Support in tools
 
 Inline modules could be transpiled to either data URLs, or to a module in a separate file. Either transformation preserves semantics.
+
+## Relationship to bundling
+
+This inline modules proposal has nothing to do with bundling; it's really just about running modules in Realms or Workers. To bundle multiple modules together into one file, you'd want some way to give specifiers the inline modules, such that they can be imported by other modules. On the other hand, specifiers are not needed for the Realm and Worker use cases. This inline modules proposal does not provide modules with specifiers; a complementary proposal could do so. 
