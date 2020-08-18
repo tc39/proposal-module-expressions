@@ -92,6 +92,8 @@ The hope would be that inline modules are just as optimizable as normal modules 
 
 Inline modules could be transpiled to either data URLs, or to a module in a separate file. Either transformation preserves semantics.
 
-## Relationship to bundling
+## Named modules and bundling
+
+This proposal only allows anonymous module definitions. We could permit a form like `module x { }` which would define a local variable (much like class declarations), but this proposal omits it to avoid the risk that it be misinterpreted as defining a specifier that can be imported as a string form.
 
 This inline modules proposal has nothing to do with bundling; it's really just about running modules in Realms or Workers. To bundle multiple modules together into one file, you'd want some way to give specifiers the inline modules, such that they can be imported by other modules. On the other hand, specifiers are not needed for the Realm and Worker use cases. This inline modules proposal does not provide modules with specifiers; a complementary proposal could do so. 
