@@ -1,5 +1,18 @@
 # Anonymous inline modules
 
+Anonymous inline modules are an effort by [Daniel Ehrenberg] and [myself][surma]. It is the result of a lot of prior art, most notably [Justin Fagnani]’s [Inline Modules] proposal and [Domenic][domenic denicola]’s and [my][surma] [Blöcks] proposal.
+
+## Problem space
+
+The lack of inline modules in JavaScript has spawned some best practice that are really just workarounds and more often than not have negative performance implications. Sometimes, the lack of inline modules even form a hinderance to the adoption of APIs. A small sample of examples:
+ 
+- Workers (and Worklets!) are often cited to be unergonomic because of the need of a separate file. Both Houdini and classic Web Workers can benefit greatly from inline modules.
+- Bundlers can’t put multiple ES6 modules into a single file but have to resort to either extensive variable renaming (which involves scope analysis) or 3rd party module formats.
+- JavaScript cannot represent a “tasks” in a way that can be shared across realms, short of stringification.
+- [Attempts][scheduler api] at building a scheduler for the web (á la GCD) have been constrained to the main thread due JS’s current inability to share code.
+
+## High-level
+
 Anonymous inline modules are syntax for the contents of a module, which can then be imported.
 
 ```js
@@ -18,10 +31,13 @@ Importing an anonymous inline module needs to be async, as anonymous inline modu
 let inlineModule = module {
   export * from "https://foo.com/script.mjs";
 };
-
 ```
 
 Anonymous inline modules are only imported through dynamic `import()`, and not through `import` statements, as there is no way to address them as a specifier string.
+
+Relative import statements are resolved against with the path of the _declaring_ module. This is especially important when sending inline modules to a worker.
+
+Anonymous modules can be turned into an Object URL using `URL.createObjectURL(inlineModule)` for backwards-compatibility. Maybe it even makes sense to allow stringification via `toString()`.
 
 ## Syntax details
 
@@ -77,6 +93,7 @@ Maybe it would be possible to store an inline module in IndexedDB as well, but t
 ## Integration with CSP
 
 Content Security Policy (CSP) has two knobs which are relevant to anonymous inline modules
+
 - Turning off `eval`, which also turns off other APIs which parse JavaScript. `eval` is disabled by default.
 - Restricting the set of URLs allowed for sources, which also disables importing data URLs. By default, the set is unlimited.
 
@@ -92,8 +109,15 @@ The hope would be that anonymous inline modules are just as optimizable as norma
 
 Anonymous inline modules could be transpiled to either data URLs, or to a module in a separate file. Either transformation preserves semantics.
 
-## Named modules and bundling
+## Named modules
 
 This proposal only allows anonymous module definitions. We could permit a form like `module x { }` which would define a local variable (much like class declarations), but this proposal omits it to avoid the risk that it be misinterpreted as defining a specifier that can be imported as a string form.
 
-Anonymous inline modules proposal has nothing to do with bundling; it's really just about running modules in Realms or Workers. To bundle multiple modules together into one file, you'd want some way to give specifiers the inline modules, such that they can be imported by other modules. On the other hand, specifiers are not needed for the Realm and Worker use cases. This inline modules proposal does not provide modules with specifiers; a complementary "named inline modules" proposal could do so. Note that there are significant privacy issues to solve with bundling to permit ad blockers; see [concerns from Brave](https://brave.com/webbundles-harmful-to-content-blocking-security-tools-and-the-open-web/).
+[justin fagnani]: https://twitter.com/justinfagnani
+[daniel ehrenberg]: https://twitter.com/littledan
+[inline modules]: https://gist.github.com/justinfagnani/d26ba99aec5ffc02264907512c082622
+[domenic denicola]: https://twitter.com/domenic
+[surma]: https://twitter.com/dassurma
+[shu]: https://twitter.com/_shu
+[scheduler api]: https://github.com/WICG/main-thread-scheduling/
+[blöcks]: https://github.com/domenic/proposal-blocks/tree/44668b647c48b116a8643d04e4e80735a3c5b78d
