@@ -5,9 +5,8 @@ Anonymous inline modules are an effort by [Daniel Ehrenberg] and [myself][surma]
 ## Problem space
 
 The lack of inline modules in JavaScript has spawned some best practice that are really just workarounds and more often than not have negative performance implications. Sometimes, the lack of inline modules even form a hinderance to the adoption of APIs. A small sample of examples:
- 
+
 - Workers (and Worklets!) are often cited to be unergonomic because of the need of a separate file. Both Houdini and classic Web Workers can benefit greatly from inline modules.
-- Bundlers can’t put multiple ES6 modules into a single file but have to resort to either extensive variable renaming (which involves scope analysis) or 3rd party module formats.
 - JavaScript cannot represent a “tasks” in a way that can be shared across realms, short of stringification.
 - [Attempts][scheduler api] at building a scheduler for the web (á la GCD) have been constrained to the main thread due JS’s current inability to share code.
 
@@ -25,7 +24,7 @@ assert(moduleExports.y === 1);
 assert(await import(inlineModule) === moduleExports);  // cached in the module map
 ```
 
-Importing an anonymous inline module needs to be async, as anonymous inline modules may import other modules, which are fetched from the network.
+Importing an anonymous inline module needs to be async, as anonymous inline modules may import other modules, which are fetched from the network. Anonymous inline modules may get imported multiple times, but will get cached in the module map and will return a reference to the same module.
 
 ```js
 let inlineModule = module {
@@ -109,9 +108,11 @@ The hope would be that anonymous inline modules are just as optimizable as norma
 
 Anonymous inline modules could be transpiled to either data URLs, or to a module in a separate file. Either transformation preserves semantics.
 
-## Named modules
+## Named modules and bundling.
 
 This proposal only allows anonymous module definitions. We could permit a form like `module x { }` which would define a local variable (much like class declarations), but this proposal omits it to avoid the risk that it be misinterpreted as defining a specifier that can be imported as a string form.
+
+In its current form, this proposal is not suitable as a target for bundlers as modules can’t refer to or import each other. A complementary "named inline modules" proposal could do so. Note that there are significant privacy issues to solve with bundling to permit ad blockers; see [concerns from Brave](https://brave.com/webbundles-harmful-to-content-blocking-security-tools-and-the-open-web/).
 
 [justin fagnani]: https://twitter.com/justinfagnani
 [daniel ehrenberg]: https://twitter.com/littledan
