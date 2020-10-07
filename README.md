@@ -140,7 +140,7 @@ Module blocks could be transpiled to either data URLs, or to a module in a separ
 
 This proposal only allows anonymous module definitions. We could permit a form like `module x { }` which would define a local variable (much like class declarations), but this proposal omits it to avoid the risk that it be misinterpreted as defining a specifier that can be imported as a string form.
 
-In its current form, this proposal is not suitable as a target for bundlers as modules can’t refer to or import each other. A complementary "named inline modules" proposal could do so. Note that there are significant privacy issues to solve with bundling to permit ad blockers; see [concerns from Brave](https://brave.com/webbundles-harmful-to-content-blocking-security-tools-and-the-open-web/).
+In its current form, this proposal is not suitable as a target for bundlers as modules can’t refer to or import each other. The complementary "[JS Module Bundles]" proposal does so. Note that there are significant privacy issues to solve with bundling to permit ad blockers; see [concerns from Brave](https://brave.com/webbundles-harmful-to-content-blocking-security-tools-and-the-open-web/).
 
 [justin fagnani]: https://twitter.com/justinfagnani
 [daniel ehrenberg]: https://twitter.com/littledan
@@ -150,3 +150,4 @@ In its current form, this proposal is not suitable as a target for bundlers as m
 [shu]: https://twitter.com/_shu
 [scheduler api]: https://github.com/WICG/main-thread-scheduling/
 [blöcks]: https://github.com/domenic/proposal-blocks/tree/44668b647c48b116a8643d04e4e80735a3c5b78d
+[js module bundles]: https://gist.github.com/littledan/c54efa928b7e6ce7e69190f73673e2a0
