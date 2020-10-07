@@ -1,6 +1,6 @@
-# Anonymous inline modules
+# JS Module Blocks
 
-Anonymous inline modules are an effort by [Daniel Ehrenberg] and [myself][surma]. It is the result of a lot of prior art, most notably [Justin Fagnani]’s [Inline Modules] proposal and [Domenic][domenic denicola]’s and [my][surma] [Blöcks] proposal.
+JS Module Blocks (“module blocks”) are an effort by [Daniel Ehrenberg] and [myself][surma]. It is the result of a lot of prior art, most notably [Justin Fagnani]’s [Inline Modules] proposal and [Domenic][domenic denicola]’s and [my][surma] [Blöcks] proposal.
 
 ## Problem space
 
@@ -8,35 +8,35 @@ The lack of inline modules in JavaScript has spawned some best practice that are
 
 - Workers (and Worklets!) are often cited to be unergonomic because of the need of a separate file. Both Houdini and classic Web Workers can benefit greatly from inline modules.
 - JavaScript cannot represent a “tasks” in a way that can be shared across realms, short of stringification.
-- [Attempts][scheduler api] at building a scheduler for the web (á la GCD) have been constrained to the main thread due JS’s current inability to share code.
+- [Attempts][scheduler api] at building a scheduler for the web (á la GCD) have been constrained to the main thread due JS’s current inability to share code across realm boundaries.
 
 ## High-level
 
-Anonymous inline modules are syntax for the contents of a module, which can then be imported.
+Module blocks are syntax for the contents of a module, which can then be imported.
 
 ```js
-let inlineModule = module {
+let moduleBlock = module {
   export let y = 1;
 };
-let moduleExports = await import(inlineModule);
+let moduleExports = await import(moduleBlock);
 assert(moduleExports.y === 1);
 
-assert(await import(inlineModule) === moduleExports);  // cached in the module map
+assert(await import(moduleBlock) === moduleExports);  // cached in the module map
 ```
 
-Importing an anonymous inline module needs to be async, as anonymous inline modules may import other modules, which are fetched from the network. Anonymous inline modules may get imported multiple times, but will get cached in the module map and will return a reference to the same module.
+Importing a module block needs to be async, as module blocks may import other modules, which are fetched from the network. Module blocks may get imported multiple times, but will get cached in the module map and will return a reference to the same module.
 
 ```js
-let inlineModule = module {
+let moduleBlock = module {
   export * from "https://foo.com/script.mjs";
 };
 ```
 
-Anonymous inline modules are only imported through dynamic `import()`, and not through `import` statements, as there is no way to address them as a specifier string.
+Module blocks are only imported through dynamic `import()`, and not through `import` statements, as there is no way to address them as a specifier string.
 
-Relative import statements are resolved against with the path of the _declaring_ module. This is especially important when sending inline modules to a worker.
+Relative import statements are resolved against with the path of the _declaring_ module. This is especially important when sending module blocks to a worker.
 
-Anonymous modules can be turned into an Object URL using `URL.createObjectURL(inlineModule)` for backwards-compatibility. Maybe it even makes sense to allow stringification via `toString()`.
+Module blocks can be turned into an Object URL using `URL.createObjectURL(moduleBlock)` for backwards-compatibility. Maybe it even makes sense to allow stringification via `toString()`.
 
 ## Syntax details
 
@@ -50,9 +50,9 @@ As `module` is not a keyword in JavaScript, no newline is permitted between `mod
 
 ## Realm interaction
 
-As anonymous inline modules behave like module specifiers, they are independent of the Realm where they exist, and they cannot close over any lexically scoped variable outside of the module--they just close over the Realm in which they're imported.
+As module blocks behave like module specifiers, they are independent of the Realm where they exist, and they cannot close over any lexically scoped variable outside of the module--they just close over the Realm in which they're imported.
 
-For example, in conjunction with the [Realms proposal](https://github.com/tc39/proposal-realms), anonymous inline modules could permit syntactically local code to be executed in the context of the module:
+For example, in conjunction with the [Realms proposal](https://github.com/tc39/proposal-realms), module blocks could permit syntactically local code to be executed in the context of the module:
 
 ```js
 let module = module {
@@ -72,7 +72,7 @@ assert(m.o !== m1.o);
 
 ## Use with workers
 
-It should be possible to run a module Worker with anonymous inline modules, and to `postMessage` an inline module to a worker:
+It should be possible to run a module Worker with module blocks, and to `postMessage` a module block to a worker:
 
 ```js
 let workerCode = module {
@@ -87,26 +87,26 @@ worker.onmessage = ({data}) => alert(data);
 worker.postMessage(module { export function fn() { return "hello!" } });
 ```
 
-Maybe it would be possible to store an inline module in IndexedDB as well, but this is more debatable, as persistent code could be a security risk.
+Maybe it would be possible to store a module block in IndexedDB as well, but this is more debatable, as persistent code could be a security risk.
 
 ## Integration with CSP
 
-Content Security Policy (CSP) has two knobs which are relevant to anonymous inline modules
+Content Security Policy (CSP) has two knobs which are relevant to module blocks
 
 - Turning off `eval`, which also turns off other APIs which parse JavaScript. `eval` is disabled by default.
 - Restricting the set of URLs allowed for sources, which also disables importing data URLs. By default, the set is unlimited.
 
-Modules already allow the no-`eval` condition to be met: As modules are retrieved with `fetch`, they are not considered from `eval`, whether through `new Worker()` or `Realm.prototype.import`. Anonymous inline modules follow this: as they are parsed in syntax with the surrounding JavaScript code, they cannot be a vector for injection attacks, and they are not blocked by this condition.
+Modules already allow the no-`eval` condition to be met: As modules are retrieved with `fetch`, they are not considered from `eval`, whether through `new Worker()` or `Realm.prototype.import`. Module blocks follow this: as they are parsed in syntax with the surrounding JavaScript code, they cannot be a vector for injection attacks, and they are not blocked by this condition.
 
-The source list restriction is then applied to modules. The semantics of anonymous inline modules are basically equivalent to `data:` URLs, with the distinction that they would always be considered in the sources list (since it's part of a resource that was already loaded as script).
+The source list restriction is then applied to modules. The semantics of module blocks are basically equivalent to `data:` URLs, with the distinction that they would always be considered in the sources list (since it's part of a resource that was already loaded as script).
 
 ## Optimization potential
 
-The hope would be that anonymous inline modules are just as optimizable as normal modules that are imported multiple times. For example, one hope would be that, in some engines, bytecode for an inline module only needs to be generated once, even as it's imported multiple times in different Realms. However, type feedback and JIT-optimized code should probably be maintained separately for each Realm where the inline module is imported, or one module's use would pollute another.
+The hope would be that module blocks are just as optimizable as normal modules that are imported multiple times. For example, one hope would be that, in some engines, bytecode for a module block only needs to be generated once, even as it's imported multiple times in different Realms. However, type feedback and JIT-optimized code should probably be maintained separately for each Realm where the module block is imported, or one module's use would pollute another.
 
 ## Support in tools
 
-Anonymous inline modules could be transpiled to either data URLs, or to a module in a separate file. Either transformation preserves semantics.
+Module blocks could be transpiled to either data URLs, or to a module in a separate file. Either transformation preserves semantics.
 
 ## Named modules and bundling.
 
