@@ -36,8 +36,6 @@ Module blocks are only imported through dynamic `import()`, and not through `imp
 
 Relative import statements are resolved against with the path of the _declaring_ module. This is especially important when sending module blocks to a worker.
 
-Module blocks can be turned into an Object URL using `URL.createObjectURL(moduleBlock)` for backwards-compatibility. Maybe it even makes sense to allow stringification via `toString()`.
-
 ## Syntax details
 
 ```
@@ -47,6 +45,36 @@ InlineModuleExpression : module [no LineTerminator here] { Module }
 ```
 
 As `module` is not a keyword in JavaScript, no newline is permitted between `module` and `{`. Probably this will be an easy bug to catch in practice, as accessing the variable `module` will usually be a ReferenceError.
+
+## Host Integration
+
+Module blocks can be turned into an Object URL using `URL.createObjectURL(moduleBlock)` for backwards-compatibility and polyfillability. Maybe it even makes sense to allow stringification via `toString()`. Importing a module block’s object URL or the module block directly returns a reference to the same module from the module cache:
+
+```js
+const module = module { export default 42; }
+const moduleURL = URL.createObjectURL(module);
+assert(module == await import(moduleURL));
+```
+
+`import.meta` is inherited from the module the module block is syntactically located in. This is especially useful (if not essential) to make module blocks and the relative paths contained within behave as expected once they are shared across realms (e.g. sent to a worker):
+
+```js
+// main.js
+const module = module {
+	export async function main(url) {
+		return import.meta.url;
+	}
+}
+const worker = new Worker("./module-executor.js");
+worker.postMessage(module):
+worker.onmessage = ({data}) => assert(data == import.meta.url);
+
+// module-executor.js
+addEventListener("message", async ({data}) => {
+	const {main} = await import(data);
+	postMessage(await main());
+});
+```
 
 ## Realm interaction
 
