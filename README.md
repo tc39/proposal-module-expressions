@@ -7,7 +7,7 @@ JS Module Blocks (“module blocks”) are an effort by [Daniel Ehrenberg] and [
 The lack of inline modules in JavaScript has spawned some best practice that are really just workarounds and more often than not have negative performance implications. Sometimes, the lack of inline modules even form a hinderance to the adoption of APIs. A small sample of examples:
 
 - Workers (and Worklets!) are often cited to be unergonomic because of the need of a separate file. Both Houdini and classic Web Workers can benefit greatly from inline modules.
-- JavaScript cannot represent a “tasks” in a way that can be shared across realms, short of stringification.
+- JavaScript cannot represent a “tasks” in a way that can be shared across agents, short of stringification.
 - [Attempts][scheduler api] at building a scheduler for the web (á la GCD) have been constrained to the main thread due JS’s current inability to share code across realm boundaries.
 
 ## High-level
@@ -46,7 +46,7 @@ InlineModuleExpression : module [no LineTerminator here] { Module }
 
 As `module` is not a keyword in JavaScript, no newline is permitted between `module` and `{`. Probably this will be an easy bug to catch in practice, as accessing the variable `module` will usually be a ReferenceError.
 
-## Host Integration
+## HTML Integration
 
 Module blocks can be turned into an Object URL using `URL.createObjectURL(moduleBlock)` for backwards-compatibility and polyfillability. Maybe it even makes sense to allow stringification via `toString()`. Importing a module block’s object URL or the module block directly returns a reference to the same module from the module cache:
 
@@ -75,6 +75,12 @@ addEventListener("message", async ({data}) => {
 	postMessage(await main());
 });
 ```
+
+## `ModuleBlock` object model
+
+A module block expression `module { }` evaluates to an instance of a `ModuleBlock` class. Instances are frozen, and the same instance is returned each time for a particular Parse Node, like tagged template literals. `Module` instances have an internal slot [[ModuleBlockHostData]]. This internal slot is filled in by the host in a new host hook called when parsing each module block. (Alternative: A fresh, mutable `ModuleBlock` is returned each time the `module { }` is evaluated, with the same [[ModuleBlockHostData]] each time.) In `import()`, if the parameter has a [[ModuleBlockHostData]] internal slot, it is passed up as is to the dynamic import host hook, and ToString is only called on other values without this slot. 
+
+*In HTML:* the [[ModuleBlockHostData]] is initialized to a new, hidden Blob which contains the module contents and a JavaScript MIME type (with the difference that this blob is created with a base URL derived from the path it syntactically occurred in, unlike normal blobs). `import()`ing one of these Module instances leads to the Blob's URL to be `import()`ed. This underlying Blob URL found in [[ModuleBlockHostData]] is what's returned from `URL.createObjectURL`.
 
 ## Realm interaction
 
@@ -138,9 +144,7 @@ Module blocks could be transpiled to either data URLs, or to a module in a separ
 
 ## Named modules and bundling.
 
-This proposal only allows anonymous module definitions. We could permit a form like `module x { }` which would define a local variable (much like class declarations), but this proposal omits it to avoid the risk that it be misinterpreted as defining a specifier that can be imported as a string form.
-
-In its current form, this proposal is not suitable as a target for bundlers as modules can’t refer to or import each other. The complementary "[JS Module Bundles]" proposal does so. Note that there are significant privacy issues to solve with bundling to permit ad blockers; see [concerns from Brave](https://brave.com/webbundles-harmful-to-content-blocking-security-tools-and-the-open-web/).
+This proposal only allows anonymous module blocks. There are other proposals for named module *bundles* (with URLs corresponding to the specifier of each JS module), including "[JS Module Bundles]" proposal, and [Web Bundles](https://www.ietf.org/id/draft-yasskin-wpack-bundled-exchanges-03.html). Note that there are significant privacy issues to solve with bundling to permit ad blockers; see [concerns from Brave](https://brave.com/webbundles-harmful-to-content-blocking-security-tools-and-the-open-web/).
 
 [justin fagnani]: https://twitter.com/justinfagnani
 [daniel ehrenberg]: https://twitter.com/littledan
