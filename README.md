@@ -98,7 +98,7 @@ assert(m.o === Object);
 
 let r1 = new Realm();
 let m1 = await r1.import(module);
-assert(m1.o === r1.Object);
+assert(m1.o === r1.globalThis.Object);
 assert(m1.o !== Object);
 
 assert(m.o !== m1.o);
