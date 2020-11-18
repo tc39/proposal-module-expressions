@@ -90,7 +90,7 @@ For example, in conjunction with the [Realms proposal](https://github.com/tc39/p
 
 ```js
 let module = module {
-  export o = Object;
+  export let o = Object;
 };
 
 let m = await import(module);
