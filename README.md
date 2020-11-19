@@ -53,7 +53,7 @@ Module blocks can be turned into an Object URL using `URL.createObjectURL(module
 ```js
 const module = module { export default 42; }
 const moduleURL = URL.createObjectURL(module);
-assert(module == await import(moduleURL));
+assert(await import(module) == await import(moduleURL));
 ```
 
 `import.meta` is inherited from the module the module block is syntactically located in. This is especially useful (if not essential) to make module blocks and the relative paths contained within behave as expected once they are shared across realms (e.g. sent to a worker):
