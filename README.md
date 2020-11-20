@@ -7,7 +7,7 @@ JS Module Blocks (“module blocks”) are an effort by [Daniel Ehrenberg] and [
 The lack of inline modules in JavaScript has spawned some best practice that are really just workarounds and more often than not have negative performance implications. Sometimes, the lack of inline modules even form a hinderance to the adoption of APIs. A small sample of examples:
 
 - Workers (and Worklets!) are often cited to be unergonomic because of the need of a separate file. Both Houdini and classic Web Workers can benefit greatly from inline modules.
-- JavaScript cannot represent a “tasks” in a way that can be shared across agents, short of stringification.
+- JavaScript cannot represent a “task” in a way that can be shared across agents, short of stringification.
 - [Attempts][scheduler api] at building a scheduler for the web (á la GCD) have been constrained to the main thread due JS’s current inability to share code across realm boundaries.
 
 ## High-level
