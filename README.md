@@ -66,7 +66,7 @@ const module = module {
 	}
 }
 const worker = new Worker("./module-executor.js");
-worker.postMessage(module):
+worker.postMessage(module);
 worker.onmessage = ({data}) => assert(data == import.meta.url);
 
 // module-executor.js
