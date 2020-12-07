@@ -150,7 +150,7 @@ This proposal only allows anonymous module blocks. There are other proposals for
 
 ### Should we really allow creation of workers using module blocks?
 
-In my opinion: Yes. The requirement that workers are in a separate file is one of the most prominent pieces of feedback about why workers are hard to adopt. That’s why so many resort to Blob URLs or Data URLs, bringing along all kinds of difficulties, especially relating to paths and CSP.
+In my opinion: Yes. The requirement that workers are in a separate file is one of the most prominent pieces of feedback about why workers are hard to adopt. That’s why so many resort to Blob URLs or Data URLs, bringing along all kinds of difficulties, especially relating to paths and CSP. The risk here is that people start spawning a lot workers without regards to their cost, but I think the benefits of lowering the barrier to workers as an important performance primitive outweigh the risks.
 
 ### Can you close over variables? Can you reference values outside the module block?
 
@@ -170,7 +170,7 @@ const m = module {
 
 ### What about a nice shorthand for modules that just contain one function?
 
-A short-hand for modules containing just one function would be convenient to have _if that is a common pattern_. Something like this:
+Something like this?
 
 ```js
 const m = module (x) => x**2;
@@ -182,7 +182,7 @@ const m = module {
 }
 ```
 
-However, it is unclear whether this will actually be a common pattern, as it not only requires the module to have exactly one function, but also that it does not need any static imports. If the MVP of Module Blocks sees adoption and this becomes a frequently recurring pattern, a module shorthand seems like a good idea.
+It is unclear whether this will actually be a common pattern, as it not only requires the module to have exactly one function, but also that it does not need any static imports. For now we plan to leave the MVP without such a shorthand and observe what kind of usage patterns emerge. If import-free single-function modules become a frequently recurring pattern, a module shorthand seems like a good idea to add.
 
 ### Can Module Blocks help with bundling?
 
@@ -244,8 +244,8 @@ To address the bundling problem, Dan Ehrenberg is maintaining a separate [propos
 
 ### What about Blöcks?
 
-[Blöcks] has been archived. This proposal is probably a better fit for JavaScript for a bunch of reasons:
-- Blöcks was trying to introduce a new block type or even function. Both imply that you can close over/capture values outside that scope. We tried to allow that in Blöcks (because it is expected) which turned out to be a can of worms.
+[Blöcks] has been archived. Module blocks is probably a better fit for JavaScript for a bunch of reasons:
+- Blöcks was trying to introduce a new type of function. Both imply that you can close over/capture values outside that scope. We tried to allow that in Blöcks (because it is expected) which turned out to be a can of worms.
 - Instead, Modules are well-explored, well-specified and well-understood by tooling, engines and developers. A lot of questions we had to worry about in Blöcks are naturally resolved through prior work in the modules space (e.g a module can only reference the global scope and do imports).
 - Modules already have a caching mechanism.
 - Modules are easier to  backwards compatible by making module blocks ObjectURL-able.
