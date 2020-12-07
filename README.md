@@ -146,6 +146,140 @@ Module blocks could be transpiled to either data URLs, or to a module in a separ
 
 This proposal only allows anonymous module blocks. There are other proposals for named module *bundles* (with URLs corresponding to the specifier of each JS module), including "[JS Module Bundles]" proposal, and [Web Bundles](https://www.ietf.org/id/draft-yasskin-wpack-bundled-exchanges-03.html). Note that there are significant privacy issues to solve with bundling to permit ad blockers; see [concerns from Brave](https://brave.com/webbundles-harmful-to-content-blocking-security-tools-and-the-open-web/).
 
+## FAQs
+
+### Should we really allow creation of workers using module blocks?
+
+In my opinion: Yes. The requirement that workers are in a separate file is one of the most prominent pieces of feedback about why workers are hard to adopt. That’s why so many resort to Blob URLs or Data URLs, bringing along all kinds of difficulties, especially relating to paths and CSP.
+
+### Can you close over variables? Can you reference values outside the module block?
+
+No. Just like a separate file containing a ES module, you can only reference the global scope and import other modules.
+
+### Can you _statically_ import other modules?
+
+Yes. Just like with a separate file. This is completely valid:
+
+```js
+const m = module {
+  import myApiWrapper from "./api-wrapper.js";
+
+  await someTopLevelAwaitLogic();
+}
+```
+
+### What about a nice shorthand for modules that just contain one function?
+
+A short-hand for modules containing just one function would be convenient to have _if that is a common pattern_. Something like this:
+
+```js
+const m = module (x) => x**2;
+
+// equivalent to
+
+const m = module {
+  export default (x) => x**2;
+}
+```
+
+However, it is unclear whether this will actually be a common pattern, as it not only requires the module to have exactly one function, but also that it does not need any static imports. If the MVP of Module Blocks sees adoption and this becomes a frequently recurring pattern, a module shorthand seems like a good idea.
+
+### Can Module Blocks help with bundling?
+
+Mostly no. In _some_ scenarios Module Blocks can be sufficient to bundle:
+
+```js
+const count = module {
+  let i = 0;
+
+  export function count() {
+    i++;
+    return i;
+  }
+};
+
+const uppercase = module {
+  export function uppercase(string) {
+    return string.toUpperCase();
+  }
+};
+
+const { count } = await import(count);
+const { uppercase } = await import(uppercase);
+
+console.log(count()); // 1
+console.log(uppercase("daniel")); // "DANIEL"
+```
+
+In the _general_ case, however, modules need to refer to each other. For that to work Module Blocks would need to be able to close over modules, which they can’t do:
+
+```js
+const count = module {
+  let i = 0;
+
+  export function count() {
+    i++;
+    return i;
+  }
+};
+
+const uppercase = module {
+  export function uppercase(string) {
+    return string.toUpperCase();
+  }
+};
+
+const combined = module {
+  const { count } = await import(count);
+  const { uppercase } = await import(uppercase);
+
+  console.log(count()); // 1
+  console.log(uppercase("daniel")); // "DANIEL"
+};
+
+// ReferenceError as we can't close over count or uppercase!!
+```
+
+To address the bundling problem, Dan Ehrenberg is maintaining a separate [proposal/idea][js module bundles].
+
+### What about Blöcks?
+
+[Blöcks] has been archived. This proposal is probably a better fit for JavaScript for a bunch of reasons:
+- Blöcks was trying to introduce a new block type or even function. Both imply that you can close over/capture values outside that scope. We tried to allow that in Blöcks (because it is expected) which turned out to be a can of worms.
+- Instead, Modules are well-explored, well-specified and well-understood by tooling, engines and developers. A lot of questions we had to worry about in Blöcks are naturally resolved through prior work in the modules space (e.g a module can only reference the global scope and do imports).
+- Modules already have a caching mechanism.
+- Modules are easier to  backwards compatible by making module blocks ObjectURL-able.
+
+### What about TypeScript?
+
+Within the same realm, typings should work in a straightforward way, similarly to how dynamic imports are currently typed.
+
+Across realms, the story is a bit messy, but not due to Module Blocks. It is notoriously difficult to define what kind of scope a TypeScript file should be executed in (Main thread vs worker vs service worker), which is often solved by having multiple tsconfig.json file and composited projects. In that scenario, it’s even harder to have code that is shared across these TS projects.
+
+When communicating with a Worker, you already need to force a type on the `event.data` to bring typing to the communication channel.
+
+All in all, the Module Blocks does not make the typing situation worse or more complicated than it already is.
+
+## Open questions
+### What about CORS as Base URLs?
+
+Imagine a scenario where `exampleA.com` opens a window or iframe to `exampleB.com`:
+
+```js
+// exampleA.com
+
+const iframe = document.querySelector("iframe");
+iframe.src = "https://exampleB.com";
+iframe.contentWindow.postMessage(module {
+  import "./someModule.js";
+
+  fetch("./some_resource.json");
+})
+```
+
+`exampleB.com` then imports (and as a result executes) the module block it receives in its realm. The `import` statement should most definitely relative to the module the modue block is _syntactically_ embedded in. What about the `fetch()`? Will the fetch request contain cookies? Should the import even work to begin with without CORS headers? This is an open question
+
+
 [justin fagnani]: https://twitter.com/justinfagnani
 [daniel ehrenberg]: https://twitter.com/littledan
 [inline modules]: https://gist.github.com/justinfagnani/d26ba99aec5ffc02264907512c082622
