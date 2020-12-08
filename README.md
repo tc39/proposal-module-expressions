@@ -78,9 +78,9 @@ addEventListener("message", async ({data}) => {
 
 ## `ModuleBlock` object model
 
-A module block expression `module { }` evaluates to an instance of a `ModuleBlock` class. Instances are frozen, and the same instance is returned each time for a particular Parse Node, like tagged template literals. `Module` instances have an internal slot [[ModuleBlockHostData]]. This internal slot is filled in by the host in a new host hook called when parsing each module block. (Alternative: A fresh, mutable `ModuleBlock` is returned each time the `module { }` is evaluated, with the same [[ModuleBlockHostData]] each time.) In `import()`, if the parameter has a [[ModuleBlockHostData]] internal slot, it is passed up as is to the dynamic import host hook, and ToString is only called on other values without this slot. 
+A module block expression `module { }` evaluates to an instance of a `ModuleBlock` class. Instances are frozen, and the same instance is returned each time for a particular Parse Node, like tagged template literals. `Module` instances have an internal slot [[ModuleBlockHostData]]. This internal slot is filled in by the host in a new host hook called when parsing each module block. (Alternative: A fresh, mutable `ModuleBlock` is returned each time the `module { }` is evaluated, with the same [[ModuleBlockHostData]] each time.) In `import()`, if the parameter has a [[ModuleBlockHostData]] internal slot, it is passed up as is to the dynamic import host hook, and ToString is only called on other values without this slot.
 
-*In HTML:* the [[ModuleBlockHostData]] is initialized to a new, hidden Blob which contains the module contents and a JavaScript MIME type (with the difference that this blob is created with a base URL derived from the path it syntactically occurred in, unlike normal blobs). `import()`ing one of these Module instances leads to the Blob's URL to be `import()`ed. This underlying Blob URL found in [[ModuleBlockHostData]] is what's returned from `URL.createObjectURL`.
+_In HTML:_ the [[ModuleBlockHostData]] is initialized to a new, hidden Blob which contains the module contents and a JavaScript MIME type (with the difference that this blob is created with a base URL derived from the path it syntactically occurred in, unlike normal blobs). `import()`ing one of these Module instances leads to the Blob's URL to be `import()`ed. This underlying Blob URL found in [[ModuleBlockHostData]] is what's returned from `URL.createObjectURL`.
 
 ## Realm interaction
 
@@ -144,13 +144,9 @@ Module blocks could be transpiled to either data URLs, or to a module in a separ
 
 ## Named modules and bundling.
 
-This proposal only allows anonymous module blocks. There are other proposals for named module *bundles* (with URLs corresponding to the specifier of each JS module), including "[JS Module Bundles]" proposal, and [Web Bundles](https://www.ietf.org/id/draft-yasskin-wpack-bundled-exchanges-03.html). Note that there are significant privacy issues to solve with bundling to permit ad blockers; see [concerns from Brave](https://brave.com/webbundles-harmful-to-content-blocking-security-tools-and-the-open-web/).
+This proposal only allows anonymous module blocks. There are other proposals for named module _bundles_ (with URLs corresponding to the specifier of each JS module), including "[JS Module Bundles]" proposal, and [Web Bundles](https://www.ietf.org/id/draft-yasskin-wpack-bundled-exchanges-03.html). Note that there are significant privacy issues to solve with bundling to permit ad blockers; see [concerns from Brave](https://brave.com/webbundles-harmful-to-content-blocking-security-tools-and-the-open-web/).
 
 ## FAQs
-
-### Should we really allow creation of workers using module blocks?
-
-In my opinion: Yes. The requirement that workers are in a separate file is one of the most prominent pieces of feedback about why workers are hard to adopt. That’s why so many resort to Blob URLs or Data URLs, bringing along all kinds of difficulties, especially relating to paths and CSP. The risk here is that people start spawning a lot workers without regards to their cost, but I think the benefits of lowering the barrier to workers as an important performance primitive outweigh the risks.
 
 ### Can you close over variables? Can you reference values outside the module block?
 
@@ -173,20 +169,36 @@ const m = module {
 Something like this?
 
 ```js
-const m = module (x) => x**2;
-
-// equivalent to
-
 const m = module {
   export default (x) => x**2;
 }
+
+// abbreviates to
+
+const m = module (x) => x**2;
 ```
 
-It is unclear whether this will actually be a common pattern, as it not only requires the module to have exactly one function, but also that it does not need any static imports. For now we plan to leave the MVP without such a shorthand and observe what kind of usage patterns emerge. If import-free single-function modules become a frequently recurring pattern, a module shorthand seems like a good idea to add.
+This definitely looks like it removes a lot of noise for single-function modules. However, it is unclear whether this will actually be a common pattern. It is also worth nothing that this shorthand is only useful if the function does not need any imports:
+
+```js
+const m = module {
+  import {getUserDetails} from "./api-wrapper.js";
+
+  export default async (userId) => {...}
+}
+
+// abbreviates to
+
+// ???
+```
+
+You could use dynamic `import()` to move the dependencies into the function, but that is not only unidiomatic and breaks assumptions that bundlers make today, you’d also have to take care to use `Promise.all()` to avoid a waterfall loading pattern.
+
+I think it’s likely that module blocks will often have static imports and so the single-function module shorthand might not actually be useful in many cases. For now we plan to leave the MVP without such a shorthand and observe what kind of usage patterns emerge. If import-free single-function modules become a frequently recurring pattern, a module shorthand seems like a good idea to add.
 
 ### Can Module Blocks help with bundling?
 
-Mostly no. In _some_ scenarios Module Blocks can be sufficient to bundle:
+At first glance, it may look like Module Blocks could provide a bundling format for simple scenarios like this:
 
 ```js
 const count = module {
@@ -245,40 +257,150 @@ To address the bundling problem, Dan Ehrenberg is maintaining a separate [propos
 ### What about Blöcks?
 
 [Blöcks] has been archived. Module blocks is probably a better fit for JavaScript for a bunch of reasons:
+
 - Blöcks was trying to introduce a new type of function. Both imply that you can close over/capture values outside that scope. We tried to allow that in Blöcks (because it is expected) which turned out to be a can of worms.
 - Instead, Modules are well-explored, well-specified and well-understood by tooling, engines and developers. A lot of questions we had to worry about in Blöcks are naturally resolved through prior work in the modules space (e.g a module can only reference the global scope and do imports).
 - Modules already have a caching mechanism.
-- Modules are easier to  backwards compatible by making module blocks ObjectURL-able.
+- Modules are easier to backwards compatible by making module blocks ObjectURL-able.
+
+### What _is_ a Module Block?
+
+We are [still discussing the details](https://github.com/tc39/proposal-js-module-blocks/issues/1), but it’s just an object.
+
+### Are module blocks cached?
+
+It depends on what you mean by “cached”. Module blocks have the same behavior as object literals. Meaning each time a module block is evaluated, a new module block is created.
+
+```js
+const arr = new Array(2);
+for(let i = 0; i < 2; i++) {
+  arr[i] = module {};
+}
+console.assert(arr[0] !== arr[1]);
+console.assert(await import(arr[0]) !== await import(arr[1]));
+```
+
+However, module blocks participate in the module map just like any other module. So every module block can only ever have one instance in the same realm.
+
+```js
+const m1 = module{};
+const m2 = m1;
+console.assert(await import(m1) === await import(m2));
+```
 
 ### What about TypeScript?
 
-Within the same realm, typings should work in a straightforward way, similarly to how dynamic imports are currently typed.
+We've heard concerns from the TypeScript team that it could be difficult to type access to the global object within a module blocks. Unfortunately, this is part of a bigger pattern with TypeScript:
 
-Across realms, the story is a bit messy, but not due to Module Blocks. It is notoriously difficult to define what kind of scope a TypeScript file should be executed in (Main thread vs worker vs service worker), which is often solved by having multiple tsconfig.json file and composited projects. In that scenario, it’s even harder to have code that is shared across these TS projects.
+It is notoriously difficult to define what kind of scope a TypeScript file should be executed in (Main thread vs worker vs service worker), which is often solved by having multiple tsconfig.json file and composited projects. In that scenario, it’s even harder to have code that is shared across these TS projects.
 
 When communicating with a Worker, you already need to force a type on the `event.data` to bring typing to the communication channel.
 
-All in all, the Module Blocks does not make the typing situation worse or more complicated than it already is.
+All in all, it's hard to judge how much worse or more complicated Module Blocks makes the typing situation.
 
-## Open questions
-### What about CORS as Base URLs?
+Nevertheless, we're thinking about this problem and in early discussions with the TypeScript team about possible solutions, such as a TS syntax for annotating the type of the global object for a module block, such as `module<GlobalInterface> { }`
 
-Imagine a scenario where `exampleA.com` opens a window or iframe to `exampleB.com`:
+### Should we really allow creation of workers using module blocks?
+
+In my opinion: Yes. The requirement that workers are in a separate file is one of the most prominent pieces of feedback about why workers are hard to adopt. That’s why so many resort to Blob URLs or Data URLs, bringing along all kinds of difficulties, especially relating to paths and CSP. The risk here is that people start spawning a lot workers without regards to their cost, but I think the benefits of lowering the barrier to workers as an important performance primitive outweigh the risks. We have an [on-going discussion](https://github.com/tc39/proposal-js-module-blocks/issues/21) about this topic.
+
+## Examples
+
+### Greenlet
+
+If you know [Jason Miller’s][developit] [Greenlet] (or my [Clooney]), Module Blocks would be the perfect building block for such off-main-thread scheduler libraries.
 
 ```js
-// exampleA.com
+import greenlet from "new-greenlet";
 
-const iframe = document.querySelector("iframe");
-iframe.src = "https://exampleB.com";
-iframe.contentWindow.postMessage(module {
-  import "./someModule.js";
-
-  fetch("./some_resource.json");
-})
+const result =
+  await greenlet(
+    ["/api", "secretToken"],
+    module {
+      export default async function (endpoint, token) {
+        const response = await fetch(endpoint, {headers: {"Authorization": `Bearer ${token}`}});
+        const json = await response.json();
+        /* ... more expensive processing of json ... */
+        return json;
+      }
+    }
+  );
 ```
 
-`exampleB.com` then imports (and as a result executes) the module block it receives in its realm. The `import` statement should most definitely relative to the module the modue block is _syntactically_ embedded in. What about the `fetch()`? Will the fetch request contain cookies? Should the import even work to begin with without CORS headers? This is an open question
+<details>
+<summary>Implementation of `new-greenlet` using Worker pooling</summary>
 
+```js
+// new-greenlet
+
+// This is the code that is running in each worker. It accepts
+// a module block via postMessage as an async “task” to run.
+const workerModule = module {
+  addEventListener("message", async ev => {
+    const {args, module} = ev.data;
+    const {default: task} = await import(module);
+    const result = await task(...args);
+    postMessage(result);
+  });
+};
+
+// Will be assigned a function that puts a worker back in the pool
+let releaseWorker;
+
+// The pool itself is implemented as a queue using streams. Streams solve
+// Streams implement the most difficult part of pools; decoupling push from pull.
+// I.e returing a promise for a request when no worker is available
+// and als storing returned workers when there are no waiting requests.
+const workerQueue = new ReadableStream(
+  {
+    workersCreated: 0,
+    start(controller) {
+      releaseWorker = w => controller.enqueue(w);
+    },
+    // `pull()` will only get called when someone requests a worker and
+    // there is no worker in the queue. We use this as a signal to create
+    // a new worker, provided we are under the threshold.
+    // `pull()`’s return value is actually irrelevant, it’s only a signal that
+    // the we _may_ use to enqueue something. If we don’t, the promise
+    // will remain unsettled and resolve whenever the next call
+    // to `controller.enqueue()` happens.
+    async pull(controller) {
+      if (this.workersCreated >= navigator.hardwareConcurrency) {
+        return;
+      }
+      controller.enqueue(
+        new Worker(workerModule, {name: `worker${this.workersCreated}`})
+      );
+      this.workersCreated++;
+    },
+  },
+  {highWaterMark: 0}
+).getReader();
+
+// Returns a promise for an available worker. If no worker is in the pool,
+// it will wait for one.
+function getWorker() {
+  return workerQueue.read().then(({ value }) => value);
+}
+
+export default async function greenlet(args, module) {
+  const worker = await getWorker();
+  worker.postMessage({ args, module });
+  return new Promise((resolve) => {
+    worker.addEventListener(
+      "message",
+      (ev) => {
+        const result = ev.data;
+        resolve(result);
+        releaseWorker(worker);
+      },
+      { once: true }
+    );
+  });
+}
+```
+
+</details>
 
 [justin fagnani]: https://twitter.com/justinfagnani
 [daniel ehrenberg]: https://twitter.com/littledan
@@ -289,3 +411,6 @@ iframe.contentWindow.postMessage(module {
 [scheduler api]: https://github.com/WICG/main-thread-scheduling/
 [blöcks]: https://github.com/domenic/proposal-blocks/tree/44668b647c48b116a8643d04e4e80735a3c5b78d
 [js module bundles]: https://gist.github.com/littledan/c54efa928b7e6ce7e69190f73673e2a0
+[greenlet]: https://github.com/developit/greenlet
+[developit]: https://twitter.com/_developit
+[clooney]: https://github.com/GoogleChromeLabs/clooney
