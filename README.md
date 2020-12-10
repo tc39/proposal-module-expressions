@@ -53,7 +53,7 @@ Module blocks can be turned into an Object URL using `URL.createObjectURL(module
 ```js
 const module = module { export default 42; }
 const moduleURL = URL.createObjectURL(module);
-assert(await import(module) == await import(moduleURL));
+assert(await import(module) === await import(moduleURL));
 ```
 
 `import.meta` is inherited from the module the module block is syntactically located in. This is especially useful (if not essential) to make module blocks and the relative paths contained within behave as expected once they are shared across realms (e.g. sent to a worker):
@@ -347,7 +347,7 @@ const workerModule = module {
 // Will be assigned a function that puts a worker back in the pool
 let releaseWorker;
 
-// The pool itself is implemented as a queue using streams. Streams solve
+// The pool itself is implemented as a queue using streams.
 // Streams implement the most difficult part of pools; decoupling push from pull.
 // I.e returing a promise for a request when no worker is available
 // and als storing returned workers when there are no waiting requests.
