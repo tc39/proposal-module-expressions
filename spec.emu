@@ -1,0 +1,108 @@
+<pre class="metadata">
+title: JavaScript Module Blocks
+stage: 1
+contributors: Surma, Dan Ehrenberg
+</pre>
+
+<emu-clause id="sec-primary-expression">
+  <h1>Primary Expression</h1>
+  <h2>Syntax</h2>
+  <emu-grammar type="definition">
+    PrimaryExpression[Yield, Await] :
+      IdentifierReference[?Yield, ?Await]
+      Literal
+      ArrayLiteral[?Yield, ?Await]
+      ObjectLiteral[?Yield, ?Await]
+      FunctionExpression
+      ClassExpression[?Yield, ?Await]
+      GeneratorExpression
+      AsyncFunctionExpression
+      AsyncGeneratorExpression
+      <ins>ModuleBlockExpression</ins>
+      RegularExpressionLiteral
+      TemplateLiteral[?Yield, ?Await, ~Tagged]
+      CoverParenthesizedExpressionAndArrowParameterList[?Yield, ?Await] #parencover
+  </emu-grammar>
+</emu-clause>
+
+<emu-clause id="sec-module-block-definitions">
+  <h1>Module Block Definitions</h1>
+  <h2>Syntax</h2>
+  <emu-grammar type="definition">
+    ModuleBlockExpression :
+      `module` [no LineTerminator here] `{` ModuleBody_opt? `}`
+  </emu-grammar>
+
+  <h2>Runtime Semantics: Evaluation</h2>
+  <emu-alg>
+    1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%,  &laquo; [[HostDefinedSlot]], [[ModuleBlockBody]], [[SourceText]] &raquo;).
+    1. Set _moduleBlock_.[[SourceText]] to the source text matched by |ModuleBlockExpression|.
+    1. Perform ! HostInitializeModuleBlock(_moduleBlock_).
+    1. Return _moduleBlock_.
+  </emu-alg>
+</emu-clause>
+  
+<emu-clause id="sec-moduleblock">
+  <h1>ModuleBlock ( _body_ )</h1>
+  <p>The _body_ specifies the body (executable code) of a module block.</p>
+  <p>When the `ModuleBlock` function is called,the following steps are taken:</p>
+  <emu-alg>
+    1. If NewTarget is *undefined*
+      1. Throw a *TypeError* exception.
+    1. Let _parsedBody_ be ? ParseText(_body_, Module).
+    1. Let _moduleBlock_ be OrdinaryObjectCreateFromConstructor(%ModuleBlock.prototype%,  &laquo; [[HostDefinedSlot]], [[ModuleBlockBody]], [[SourceText]] &raquo;).
+    1. Let _sourceString_ be the string-concatenation of *"module {"*, _body_ and *"}"*.
+    1. Set _moduleBlock_.[[SourceText]] to _sourceString_.
+    1. Set _moduleBlock_.[[ModuleBlockBody]] to _parsedBody_.
+    1. Return _moduleBlock_.
+  </emu-alg>
+</emu-clause>
+
+<emu-clause id="sec-moduleblock.prototype">
+  <h1>ModuleBlock.prototype</h1>
+  <p>The initial value of `ModuleBlock.prototype` is the ModuleBlock prototype object.</p>
+  <p>This property has the attributes { [[Writable]]: *false*, [[Enumerable]]: *false*, [[Configurable]]: *false* }.</p>
+</emu-clause>
+
+<emu-clause id="sec-properties-of-the-moduleblock-prototype-object">
+  <h1>Properties of the ModuleBlock Prototype Object</h1>
+  <p>The <dfn>ModuleBlock prototype object</dfn>:</p>
+  <ul>
+    <li>is <dfn>%ModuleBlock.prototype%</dfn>.</li>
+    <li>has a [[Prototype]] internal slot whose value is %Object.prototype%.</li>
+    <li>is an ordinary object.</li>
+  </ul>
+
+  <emu-clause id="sec-moduleblock.prototype.tostring">
+    <h1>ModuleBlock.prototype.toString ( )</h1>
+    <p>The following steps are taken:</p>
+    <emu-alg>
+      1. Let _module_ be the *this* value.
+      1. If Type(_module_) is Object and has the internal slot [[ModuleBlockBody]]
+        1. Return _module_.[[SourceText]].
+      1. Throw a *TypeError* exception.
+    </emu-alg>
+  </emu-clause>
+</emu-clause>
+
+<emu-clause id="sec-import-calls">
+  <h1>Import Calls</h1>
+
+  <emu-clause id="sec-import-call-runtime-semantics-evaluation">
+    <h1>Runtime Semantics: Evaluation</h1>
+
+    <emu-grammar>ImportCall : `import` `(` AssignmentExpression `)`</emu-grammar>
+    <emu-alg>
+      1. Let _referencingScriptOrModule_ be ! GetActiveScriptOrModule().
+      1. Let _argRef_ be the result of evaluating |AssignmentExpression|.
+      1. Let _specifier_ be ? GetValue(_argRef_).
+      1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
+      1. <del>Let _specifierString_ be ToString(_specifier_).</del>
+      1. <ins>If Type(_specifier_) is not Object or _specifier_ does not have the internal slot [[ModuleBlockBody]]</ins>
+        1. <ins>Set _specifier_ to ToString(_specifier_).</ins>
+        1. IfAbruptRejectPromise(<del>_specifierString_</del><ins>_specifier_</ins>, _promiseCapability_).
+      1. Perform ! HostImportModuleDynamically(_referencingScriptOrModule_, <del>_specifierString_</del><ins>_specifier_</ins>, _promiseCapability_).
+      1. Return _promiseCapability_.[[Promise]].
+    </emu-alg>
+  </emu-clause>
+</emu-clause>
