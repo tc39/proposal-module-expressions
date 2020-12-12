@@ -30,7 +30,7 @@ contributors: Surma, Dan Ehrenberg
   <h2>Syntax</h2>
   <emu-grammar type="definition">
     ModuleBlockExpression :
-      `module` [no LineTerminator here] `{` ModuleBody_opt? `}`
+      `module` [no LineTerminator here] `{` ModuleBody? `}`
   </emu-grammar>
 
   <h2>Runtime Semantics: Evaluation</h2>
