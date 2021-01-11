@@ -37,6 +37,8 @@ contributors: Surma, Dan Ehrenberg
   <emu-alg>
     1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%,  &laquo; [[HostDefinedSlot]], [[ModuleBlockBody]], [[SourceText]] &raquo;).
     1. Set _moduleBlock_.[[SourceText]] to the source text matched by |ModuleBlockExpression|.
+    1. Let _parsedBody_ be ? ParseText(_body_, Module).
+    1. Set _moduleBlock_.[[ModuleBlockBody]] to _parsedBody_.
     1. Perform ! HostInitializeModuleBlock(_moduleBlock_).
     1. Return _moduleBlock_.
   </emu-alg>
