@@ -1,6 +1,6 @@
 # JS Module Blocks
 
-JS Module Blocks (“module blocks”) are an effort by [Daniel Ehrenberg] and [myself (Surma)][surma]. It is the result of a lot of prior art, most notably [Justin Fagnani]’s [Inline Modules] proposal and [Domenic][domenic denicola]’s and [my][surma] [Blöcks] proposal.
+JS Module Blocks (“module blocks”) are an effort by [Daniel Ehrenberg] and [Surma][surma]. It is the result of a lot of prior art, most notably [Justin Fagnani]’s [Inline Modules] proposal and [Domenic][domenic denicola]’s and [Surma][surma]'s [Blöcks] proposal.
 
 ## Problem space
 
