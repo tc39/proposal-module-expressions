@@ -44,7 +44,7 @@ PrimaryExpression :  InlineModuleExpression
 InlineModuleExpression : module [no LineTerminator here] { Module }
 ```
 
-As `module` is not a keyword in JavaScript, no newline is permitted between `module` and `{`. Probably this will be an easy bug to catch in practice, as accessing the variable `module` will usually be a ReferenceError.
+As `module` is not a keyword in JavaScript, no newline is permitted between `module` and `{`.
 
 ## HTML Integration
 
