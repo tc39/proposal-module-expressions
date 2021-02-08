@@ -46,22 +46,8 @@ contributors: Surma, Dan Ehrenberg
   
 <emu-clause id="sec-moduleblock">
   <h1>ModuleBlock ( _body_ )</h1>
-  <p>The _body_ specifies the body (executable code) of a module block.</p>
-  <p>When the `ModuleBlock` function is called,the following steps are taken:</p>
   <emu-alg>
-    1. If NewTarget is *undefined*
-      1. Throw a *TypeError* exception.
-    1. Assert: The execution context stack has at least two elements.
-    1. Let _callerContext_ be the second to top element of the execution context stack.
-    1. Let _callerRealm_ be _callerContext_'s Realm.
-    1. Let _calleeRealm_ be the current Realm Record.
-    1. Perform ? HostEnsureCanCompileStrings(_callerRealm_, _calleeRealm_). 
-    1. Let _parsedBody_ be ? ParseText(_body_, Module).
-    1. Let _moduleBlock_ be OrdinaryObjectCreateFromConstructor(%ModuleBlock.prototype%,  &laquo; [[HostDefinedSlot]], [[ModuleBlockBody]], [[SourceText]] &raquo;).
-    1. Let _sourceString_ be the string-concatenation of *"module {"*, _body_ and *"}"*.
-    1. Set _moduleBlock_.[[SourceText]] to _sourceString_.
-    1. Set _moduleBlock_.[[ModuleBlockBody]] to _parsedBody_.
-    1. Return _moduleBlock_.
+    1. Throw a *TypeError* exception.
   </emu-alg>
 </emu-clause>
 
