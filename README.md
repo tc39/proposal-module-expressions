@@ -48,15 +48,29 @@ As `module` is not a keyword in JavaScript, no newline is permitted between `mod
 
 ## HTML Integration
 
-Module blocks can be turned into an Object URL using `URL.createObjectURL(moduleBlock)` for backwards-compatibility and polyfillability. Maybe it even makes sense to allow stringification via `toString()`. Importing a module block’s object URL or the module block directly returns a reference to the same module from the module cache:
+There are 3 main integration points in the HTML spec for Module Blocks:
+
+### Worker constructor 
+
+`new Worker()` currently only accepts a path to a worker file. The proposal aims to also let it accept a Module Block directly (for `{type: "module"}` workers). 
+
+### Worklets
+
+[Worklets](https://html.spec.whatwg.org/multipage/worklets.html#worklets-worklet) (like [CSS Painting API](https://drafts.css-houdini.org/css-paint-api-1/) or [Audio Worklet](https://webaudio.github.io/web-audio-api/#audioworklet)) use the `addModule()` pattern to load a separate file into a Worklet context:
 
 ```js
-const module = module { export default 42; }
-const moduleURL = URL.createObjectURL(module);
-assert(await import(module) === await import(moduleURL));
+CSS.paintWorklet.addModule("./my-paint-worklet.js");
 ```
 
-`import.meta` is inherited from the module the module block is syntactically located in. This is especially useful (if not essential) to make module blocks and the relative paths contained within behave as expected once they are shared across realms (e.g. sent to a worker):
+The proposal aims to adjust `addModule` analogously to the Worker constructor to accept a Module Block.
+
+### Structured clone
+
+Module Blocks are structured cloneable, allowing them to be sent via `postMessage()` (to Workers, ServiceWorkers or even other windows).
+
+### `import.meta.url`
+
+`import.meta` is inherited from the module the module block is _syntactically_ located in. This is especially useful (if not essential) to make module blocks and the relative paths contained within behave as expected once they are shared across realms (e.g. sent to a worker):
 
 ```js
 // main.js
@@ -75,12 +89,6 @@ addEventListener("message", async ({data}) => {
 	postMessage(await main());
 });
 ```
-
-## `ModuleBlock` object model
-
-A module block expression `module { }` evaluates to an instance of a `ModuleBlock` class. Instances are frozen, and the same instance is returned each time for a particular Parse Node, like tagged template literals. `Module` instances have an internal slot [[ModuleBlockHostData]]. This internal slot is filled in by the host in a new host hook called when parsing each module block. (Alternative: A fresh, mutable `ModuleBlock` is returned each time the `module { }` is evaluated, with the same [[ModuleBlockHostData]] each time.) In `import()`, if the parameter has a [[ModuleBlockHostData]] internal slot, it is passed up as is to the dynamic import host hook, and ToString is only called on other values without this slot.
-
-_In HTML:_ the [[ModuleBlockHostData]] is initialized to a new, hidden Blob which contains the module contents and a JavaScript MIME type (with the difference that this blob is created with a base URL derived from the path it syntactically occurred in, unlike normal blobs). `import()`ing one of these Module instances leads to the Blob's URL to be `import()`ed. This underlying Blob URL found in [[ModuleBlockHostData]] is what's returned from `URL.createObjectURL`.
 
 ## Realm interaction
 
@@ -261,7 +269,6 @@ To address the bundling problem, Dan Ehrenberg is maintaining a separate [propos
 - Blöcks was trying to introduce a new type of function. Both imply that you can close over/capture values outside that scope. We tried to allow that in Blöcks (because it is expected) which turned out to be a can of worms.
 - Instead, Modules are well-explored, well-specified and well-understood by tooling, engines and developers. A lot of questions we had to worry about in Blöcks are naturally resolved through prior work in the modules space (e.g a module can only reference the global scope and do imports).
 - Modules already have a caching mechanism.
-- Modules are easier to backwards compatible by making module blocks ObjectURL-able.
 
 ### What _is_ a Module Block?
 
