@@ -50,9 +50,23 @@ As `module` is not a keyword in JavaScript, no newline is permitted between `mod
 
 There are 3 main integration points in the HTML spec for Module Blocks:
 
-### Worker constructor & `postMessage()`
+### Worker constructor 
 
-`new Worker()` currently only accepts a path to a worker file. The proposal aims to also let it accept a Module Block directly (for `{type: "module"}` workers). Additionally, Module Blocks are structured cloneable, allowing them to be sent to an from a Worker via `postMessage()`.
+`new Worker()` currently only accepts a path to a worker file. The proposal aims to also let it accept a Module Block directly (for `{type: "module"}` workers). 
+
+### Worklets
+
+[Worklets](https://html.spec.whatwg.org/multipage/worklets.html#worklets-worklet) (like [CSS Painting API](https://drafts.css-houdini.org/css-paint-api-1/) or [Audio Worklet](https://webaudio.github.io/web-audio-api/#audioworklet)) use the `addModule()` pattern to load a separate file into a Worklet context:
+
+```js
+CSS.paintWorklet.addModule("./my-paint-worklet.js");
+```
+
+The proposal aims to adjust `addModule` analogously to the Worker constructor to accept a Module Block.
+
+### Structured clone
+
+Module Blocks are structured cloneable, allowing them to be sent via `postMessage()` (to Workers, ServiceWorkers or even other windows).
 
 ### `import.meta.url`
 
@@ -75,20 +89,6 @@ addEventListener("message", async ({data}) => {
 	postMessage(await main());
 });
 ```
-
-### Worklets
-
-[Worklets](https://html.spec.whatwg.org/multipage/worklets.html#worklets-worklet) (like [CSS Painting API](https://drafts.css-houdini.org/css-paint-api-1/) or [Audio Worklet](https://webaudio.github.io/web-audio-api/#audioworklet)) use the `addModule()` pattern to load a separate file into a Worklet context:
-
-```js
-CSS.paintWorklet.addModule("./my-paint-worklet.js");
-```
-
-The proposal aims to adjust `addModule` analogously to the Worker constructor to accept a Module Block.
-
-## `ModuleBlock` object model
-
-A module block expression `module { }` evaluates to an instance of a `ModuleBlock` class. Instances are frozen, and the same instance is returned each time for a particular Parse Node, like tagged template literals. `Module` instances have an internal slot [[ModuleBlockHostData]]. This internal slot is filled in by the host in a new host hook called when parsing each module block. (Alternative: A fresh, mutable `ModuleBlock` is returned each time the `module { }` is evaluated, with the same [[ModuleBlockHostData]] each time.) In `import()`, if the parameter has a [[ModuleBlockHostData]] internal slot, it is passed up as is to the dynamic import host hook, and ToString is only called on other values without this slot.
 
 ## Realm interaction
 
