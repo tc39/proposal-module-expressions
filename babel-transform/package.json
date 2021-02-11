@@ -1,0 +1,12 @@
+{
+  "name": "babel-transform-module-blocks",
+  "version": "0.0.1",
+  "description": "Babel transform to handle module blocks",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Surma <surma@surma.dev>",
+  "license": "Apache-2.0",
+  "dependencies": { }
+}
