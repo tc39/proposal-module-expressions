@@ -5,10 +5,11 @@ const babel = require("./babel/packages/babel-core");
 
 const source = `
   const x = module { 
-    import {setModuleBlockPrototypeIfAppropriate} from "/module-block-helper.js";
+    import {uuid} from "./utils.js";
 
     export default function() {
       console.log(import.meta.url);
+      console.log(uuid());
     };
   };
   import(x);
@@ -34,6 +35,13 @@ function moduleBlockTransform({ types: t }) {
       },
     });
     return blobUrlAst.program.body[0];
+  }
+
+  function urlPattern(path) {
+    const ast = babel.parse(
+      `new URL(${JSON.stringify(path)}, import.meta.url)`
+    );
+    return ast.program.body[0].expression;
   }
 
   return {
@@ -88,85 +96,29 @@ function moduleBlockTransform({ types: t }) {
         // Sort *descending*
         splits.sort((a, b) => b.start - a.start);
         let remainder = stringifiedBody;
-        const quasis = [remainder];
+        const quasis = [];
         const exprs = [];
-        // for(const {type, start, end} of splits) {
-        //   const snippet = remainder.slice(start, end);
-        //   quasis.unshift(remainder.slice(end))
-        //   remainder = remainder.slice(0, start);
-        //   exprs.unshift()
-        // }
-        // quasis.unshift(remainder);
+        for (const { type, start, end } of splits) {
+          const snippet = remainder.slice(start, end);
+          quasis.unshift(remainder.slice(end));
+          remainder = remainder.slice(0, start);
+          switch (type) {
+            case "static-import":
+              exprs.unshift(urlPattern(snippet.slice(1, -1)));
+              break;
+            case "meta":
+              exprs.unshift(
+                babel.parse("import.meta.url").program.body[0].expression
+              );
+              break;
+            default:
+              throw Error(`Unknown split type ${JSON.stringify(type)}`);
+          }
+        }
+        quasis.unshift(remainder);
         const taggedTemplateBody = taggedTemplate(quasis, exprs);
         const blob = moduleBlockBlob(taggedTemplateBody);
         path.replaceWith(blob);
-
-        // traverse(body, {
-        //   ImportDeclaration({node}) {
-        //     start = node.source.start;
-        //     end = node.source.end;
-        //   }
-        // });
-        // console.log(`|${stringifiedBody}|`);
-        // console.log(stringifiedBody.slice(start, end));
-        /*
-      // const { scope } = path;
-      const { left, right, await: isAwait } = path.node;
-      if (isAwait) {
-        return;
-      }
-      const i = scope.generateUidIdentifier("i");
-      let array = scope.maybeGenerateMemoised(right, true);
-
-      const inits = [t.variableDeclarator(i, t.numericLiteral(0))];
-      if (array) {
-        inits.push(t.variableDeclarator(array, right));
-      } else {
-        array = right;
-      }
-
-      const item = t.memberExpression(
-        t.cloneNode(array),
-        t.cloneNode(i),
-        true,
-      );
-      let assignment;
-      if (t.isVariableDeclaration(left)) {
-        assignment = left;
-        assignment.declarations[0].init = item;
-      } else {
-        assignment = t.expressionStatement(
-          t.assignmentExpression("=", left, item),
-        );
-      }
-
-      let blockBody;
-      const body = path.get("body");
-      if (
-        body.isBlockStatement() &&
-        Object.keys(path.getBindingIdentifiers()).some(id =>
-          body.scope.hasOwnBinding(id),
-        )
-      ) {
-        blockBody = t.blockStatement([assignment, body.node]);
-      } else {
-        blockBody = t.toBlock(body.node);
-        blockBody.body.unshift(assignment);
-      }
-
-      path.replaceWith(
-        t.forStatement(
-          t.variableDeclaration("let", inits),
-          t.binaryExpression(
-            "<",
-            t.cloneNode(i),
-            t.memberExpression(t.cloneNode(array), t.identifier("length")),
-          ),
-          t.updateExpression("++", t.cloneNode(i)),
-          blockBody,
-        ),
-      );
-    */
       },
     },
   };
@@ -176,6 +128,3 @@ const ast = babel.transform(source, {
   plugins: [syntaxModuleBlocks, moduleBlockTransform],
 });
 console.log(ast.code);
-// console.log(generate(ast));
-// console.log(ast);
-// console.log(ast.program.body[0].declarations[0].init);
