@@ -1,7 +1,14 @@
 const worker = new Worker(module {
   console.log("Hello from a worker!");
-  addEventListener("message", ({data}) => {
-    console.log("Got a message: ", data);
+  addEventListener("message", async ({data}) => {
+    const m = await import(data);
+    await m.default();
   });
 }, {type: "module"});
-worker.postMessage("Ohai from the main thread!")
+
+worker.postMessage(module {
+  export default function() {
+    console.log("Message from the main thread", self);
+    console.log("import.meta.url = ", import.meta.url);
+  }
+});
