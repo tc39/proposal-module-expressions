@@ -1,3 +1,4 @@
 [submodule "babel-transform/babel"]
 	path = babel-transform/babel
 	url = ssh://git@github.com/sosukesuzuki/babel
+	branch = fa763c200358a291ddf04c7182cc52e5a4ba89ae

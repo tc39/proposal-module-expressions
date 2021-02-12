@@ -6,6 +6,17 @@ import babel from "./babel/packages/babel-core/lib/index.js";
 const generate = _generate.default;
 const traverse = _traverse.default;
 
+function isLocalFilePath(modulePath) {
+  if (typeof modulePath !== "string") {
+    return false;
+  }
+  return (
+    modulePath.startsWith("/") ||
+    modulePath.startsWith("./") ||
+    modulePath.startsWith("../")
+  );
+}
+
 function moduleBlockTransform({ types: t }) {
   function taggedTemplate(quasis, exprs) {
     return t.templateLiteral(
@@ -22,7 +33,7 @@ function moduleBlockTransform({ types: t }) {
 
   function urlPattern(path) {
     const ast = babel.parse(
-      `JSON.stringify(new URL(${JSON.stringify(path)}, import.meta.url))`
+      `new URL(${JSON.stringify(path)}, import.meta.url)`
     );
     return ast.program.body[0].expression;
   }
@@ -47,15 +58,39 @@ function moduleBlockTransform({ types: t }) {
           );
         },
       },
+      Import(path) {
+        if (path.parent.arguments.length != 1) {
+          // Wat are you doing?!
+          return;
+        }
+        const parameter = path.parent.arguments[0];
+        if (
+          parameter.type === "StringLiteral" &&
+          isLocalFilePath(parameter.value)
+        ) {
+          const newUrl = urlPattern(parameter.value);
+          path.parentPath.get("arguments.0").replaceWith(newUrl);
+          return;
+        }
+        path.parentPath
+          .get("arguments.0")
+          .replaceWith(
+            t.callExpression(
+              t.memberExpression(
+                t.identifier("ModuleBlock"),
+                t.identifier("fixup")
+              ),
+              [parameter]
+            )
+          );
+      },
       ModuleExpression(path) {
         const { node } = path;
-        let { body } = node;
-        const { code: stringifiedBody } = generate(body);
-
-        // Re-parsing the stringified body. Why? Because I need to do replacements
-        // and the .start/.end props from the original `body` don’t line up
-        // and I can’t get them to line up. Sue me.
-        body = babel.parse(stringifiedBody, { plugins: [syntaxModuleBlocks] });
+        let { code: stringifiedBody } = generate(node.body);
+        stringifiedBody = transform(stringifiedBody);
+        const body = babel.parse(stringifiedBody, {
+          plugins: [syntaxModuleBlocks],
+        });
         // `splits` will contain all the parts that need to get split out
         // of the template string literal and need special handling.
         // These cases are:
@@ -78,11 +113,7 @@ function moduleBlockTransform({ types: t }) {
           },
           ImportDeclaration(path) {
             const modulePath = path.node.source.value;
-            if (
-              !modulePath.startsWith("/") &&
-              modulePath.startsWith("./") &&
-              modulePath.startsWith("../")
-            ) {
+            if (!isLocalFilePath(modulePath)) {
               return;
             }
             splits.push({
@@ -103,7 +134,15 @@ function moduleBlockTransform({ types: t }) {
           remainder = remainder.slice(0, start);
           switch (type) {
             case "static-import":
-              exprs.unshift(urlPattern(snippet.slice(1, -1)));
+              exprs.unshift(
+                t.callExpression(
+                  t.memberExpression(
+                    t.identifier("JSON"),
+                    t.identifier("stringify")
+                  ),
+                  [urlPattern(snippet.slice(1, -1))]
+                )
+              );
               break;
             case "meta":
               exprs.unshift(
