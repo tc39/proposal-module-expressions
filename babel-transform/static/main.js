@@ -8,7 +8,24 @@ const moduleBlock = module {
 };
 import(moduleBlock);
 
-new Worker(module {
+const taskWorker = new Worker(module {
   import {shout} from "./utils.js";
   console.log(shout("Hello from a worker!"), self);
-}, {type: "module"})
+  addEventListener("message", async ({data}) => {
+    const {task, parameters} = data;
+    const {main} = await import(task);
+    postMessage(await main(...parameters));
+  });
+}, {type: "module"});
+
+taskWorker.postMessage({
+  task: module {
+    export async function main(a, b) {
+      return a + b;
+    }
+  },
+  parameters: [40, 2]
+});
+taskWorker.addEventListener("message", ({data}) => {
+  console.log("Received a result:", data);
+});

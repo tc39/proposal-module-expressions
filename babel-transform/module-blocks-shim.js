@@ -1,15 +1,14 @@
 const secretMarker = "___thisIsAModuleBlock";
 export class ModuleBlock {
   constructor(body) {
-    if (typeof body === "string") {
-      this._body = body;
-      this._blobURL = URL.createObjectURL(
-        new Blob([body], { type: "text/javascript" })
-      );
-      return;
+    if (typeof body !== "string") {
+      throw Error("Unexpected parameter type");
     }
-
-    throw Error("Unexpected parameter type");
+    this[secretMarker] = true;
+    this._body = body;
+    this._blobURL = URL.createObjectURL(
+      new Blob([body], { type: "text/javascript" })
+    );
   }
   toString() {
     return `module {${this._body}}`;
