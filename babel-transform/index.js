@@ -26,20 +26,7 @@ function moduleBlockTransform({ types: t }) {
   }
 
   function moduleBlockBlob(taggedTemplateBody) {
-    const blobUrlAst = babel.parse(
-      `({
-        _blobUrl: URL.createObjectURL(new Blob([\`\`], {type: "text/javascript"})),
-        _body: \`\`,
-        toString() {return this._body},
-        [Symbol.toPrimitive]() {return this._blobUrl}
-      })`
-    );
-    traverse(blobUrlAst, {
-      TemplateLiteral(path) {
-        path.replaceWith(taggedTemplateBody);
-      },
-    });
-    return blobUrlAst.program.body[0];
+    return t.newExpression(t.identifier("ModuleBlock"), [taggedTemplateBody]);
   }
 
   function urlPattern(path) {
