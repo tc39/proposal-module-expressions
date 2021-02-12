@@ -27,7 +27,12 @@ function moduleBlockTransform({ types: t }) {
 
   function moduleBlockBlob(taggedTemplateBody) {
     const blobUrlAst = babel.parse(
-      `URL.createObjectURL(new Blob([\`\`], {type: "text/javascript"}));`
+      `({
+        _blobUrl: URL.createObjectURL(new Blob([\`\`], {type: "text/javascript"})),
+        _body: \`\`,
+        toString() {return this._body},
+        [Symbol.toPrimitive]() {return this._blobUrl}
+      })`
     );
     traverse(blobUrlAst, {
       TemplateLiteral(path) {
@@ -48,6 +53,22 @@ function moduleBlockTransform({ types: t }) {
     name: "transform-module-block",
 
     visitor: {
+      Program: {
+        exit(path) {
+          path.unshiftContainer(
+            "body",
+            t.importDeclaration(
+              [
+                t.importSpecifier(
+                  t.identifier("ModuleBlock"),
+                  t.identifier("ModuleBlock")
+                ),
+              ],
+              t.stringLiteral("/module-block-shim.js")
+            )
+          );
+        },
+      },
       ModuleExpression(path) {
         const { node } = path;
         let { body } = node;
