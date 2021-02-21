@@ -186,7 +186,7 @@ const m = module {
 const m = module (x) => x**2;
 ```
 
-This definitely looks like it removes a lot of noise for single-function modules. However, it is unclear whether this will actually be a common pattern. It is also worth nothing that this shorthand is only useful if the function does not need any imports:
+This definitely looks like it removes a lot of noise for single-function modules. However, it is unclear whether this will actually be a common pattern. It is also worth noting that this shorthand is only useful if the function does not need any imports:
 
 ```js
 const m = module {
