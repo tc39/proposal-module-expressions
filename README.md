@@ -4,7 +4,9 @@ JS Module Blocks (“module blocks”) are an effort by [Daniel Ehrenberg] and [
 
 ## Problem space
 
-The lack of inline modules in JavaScript has spawned some best practice that are really just workarounds and more often than not have negative performance implications. Sometimes, the lack of inline modules even form a hinderance to the adoption of APIs. A small sample of examples:
+The lack of inline modules in JavaScript has severely inhibited the adoption of certain APIs that rely on modules. The requirement to have code in separate files is not only an often-cited major DX hurdle, but is especially hard in the era of bundlers whose main purpose it is to put as much as possible into one file.
+
+As a result, folks who want to use these APIs often resort to workarounds that can have negative performance implications or bring other limitations and problems.
 
 - Workers (and Worklets!) are often cited to be unergonomic because of the need of a separate file. Both Houdini and classic Web Workers can benefit greatly from inline modules.
 - JavaScript cannot represent a “task” in a way that can be shared across agents, short of stringification.
@@ -421,3 +423,5 @@ export default async function greenlet(args, module) {
 [greenlet]: https://github.com/developit/greenlet
 [developit]: https://twitter.com/_developit
 [clooney]: https://github.com/GoogleChromeLabs/clooney
+[css painting api]: https://developer.mozilla.org/en-US/docs/Web/API/CSS_Painting_API 
+[web workers]: https://developer.mozilla.org/en-US/docs/Web/API/Worker
