@@ -74,13 +74,13 @@ Module Blocks are structured cloneable, allowing them to be sent via `postMessag
 
 ```js
 // main.js
-const module = module {
+const moduleBlock = module {
 	export async function main(url) {
 		return import.meta.url;
 	}
 }
 const worker = new Worker("./module-executor.js");
-worker.postMessage(module);
+worker.postMessage(moduleBlock);
 worker.onmessage = ({data}) => assert(data == import.meta.url);
 
 // module-executor.js
@@ -97,15 +97,15 @@ As module blocks behave like module specifiers, they are independent of the Real
 For example, in conjunction with the [Realms proposal](https://github.com/tc39/proposal-realms), module blocks could permit syntactically local code to be executed in the context of the module:
 
 ```js
-let module = module {
+let moduleBlock = module {
   export let o = Object;
 };
 
-let m = await import(module);
+let m = await import(moduleBlock);
 assert(m.o === Object);
 
 let r1 = new Realm();
-let m1 = await r1.import(module);
+let m1 = await r1.import(moduleBlock);
 assert(m1.o === r1.globalThis.Object);
 assert(m1.o !== Object);
 
@@ -117,14 +117,14 @@ assert(m.o !== m1.o);
 It should be possible to run a module Worker with module blocks, and to `postMessage` a module block to a worker:
 
 ```js
-let workerCode = module {
+let workerBlock = module {
   onmessage = function({data}) {
     let mod = await import(data);
     postMessage(mod.fn());
   }
 };
 
-let worker = new Worker(workerCode, {type: "module"});
+let worker = new Worker(workerBlock, {type: "module"});
 worker.onmessage = ({data}) => alert(data);
 worker.postMessage(module { export function fn() { return "hello!" } });
 ```
@@ -209,7 +209,7 @@ I think it’s likely that module blocks will often have static imports and so t
 At first glance, it may look like Module Blocks could provide a bundling format for simple scenarios like this:
 
 ```js
-const count = module {
+const countBlock = module {
   let i = 0;
 
   export function count() {
@@ -218,14 +218,14 @@ const count = module {
   }
 };
 
-const uppercase = module {
+const uppercaseBlock = module {
   export function uppercase(string) {
     return string.toUpperCase();
   }
 };
 
-const { count } = await import(count);
-const { uppercase } = await import(uppercase);
+const { count } = await import(countBlock);
+const { uppercase } = await import(uppercaseBlock);
 
 console.log(count()); // 1
 console.log(uppercase("daniel")); // "DANIEL"
@@ -234,7 +234,7 @@ console.log(uppercase("daniel")); // "DANIEL"
 In the _general_ case, however, modules need to refer to each other. For that to work Module Blocks would need to be able to close over modules, which they can’t do:
 
 ```js
-const count = module {
+const countBlock = module {
   let i = 0;
 
   export function count() {
@@ -243,21 +243,21 @@ const count = module {
   }
 };
 
-const uppercase = module {
+const uppercaseBlock = module {
   export function uppercase(string) {
     return string.toUpperCase();
   }
 };
 
-const combined = module {
-  const { count } = await import(count);
-  const { uppercase } = await import(uppercase);
+const combinedBlock = module {
+  const { count } = await import(countBlock);
+  const { uppercase } = await import(uppercaseBlock);
 
   console.log(count()); // 1
   console.log(uppercase("daniel")); // "DANIEL"
 };
 
-// ReferenceError as we can't close over count or uppercase!!
+// ReferenceError as we can't close over countBlock or uppercaseBlock!!
 ```
 
 To address the bundling problem, Dan Ehrenberg is maintaining a separate [proposal/idea][js module bundles].
@@ -342,7 +342,7 @@ const result =
 
 // This is the code that is running in each worker. It accepts
 // a module block via postMessage as an async “task” to run.
-const workerModule = module {
+const workerBlock = module {
   addEventListener("message", async ev => {
     const {args, module} = ev.data;
     const {default: task} = await import(module);
@@ -376,7 +376,7 @@ const workerQueue = new ReadableStream(
         return;
       }
       controller.enqueue(
-        new Worker(workerModule, {name: `worker${this.workersCreated}`})
+        new Worker(workerBlock, {name: `worker${this.workersCreated}`})
       );
       this.workersCreated++;
     },
