@@ -11,7 +11,7 @@ Any library that wants to make use of one of these APIs faces yet another additi
 As a result, folks who want to use these APIs often resort to workarounds. These can have negative implications for performance, security or introduce other limitations. A few specific examples:
 
 - Workers are often cited to be unergonomic because of the need of a separate file. As a result people avoid them altogether and prefer sacrificing main thread responsiveness over the complexity of moving long-running work to a worker.
-- Libraries that abstract workers to create more ergonomic APIs often resort to stringification and blobification, which brings all kinds of problems with CSP (stringification relies on `eval`) and paths (data URLs and blob URLs are considered to be on a different host).
+- Libraries ([1][paralleljs], [2][greenlet])that abstract workers to create more ergonomic APIs often resort to stringification and blobification, which brings all kinds of problems with CSP (stringification relies on `eval`) and paths (data URLs and blob URLs are considered to be on a different host).
 - CSS Painting API (and any Worklet for that matter) face a similar fate where developers will either resort to workarounds like above or need [extensive per-Bundler guidance][houdini bundler guidance] on how to use the APIs correctly in a modern setup, likely resulting in less adoption.
 
 There is also the long-standing problem that JavaScript cannot represent a “task” in a way that can be shared across realms with having to deal with _at least_ one of the above problems. This has prevented any [attempt][scheduler api] at building a scheduler for the web (á la GCD) to go beyond the main thread, which is one of the main ergonomic benefits of schedulers. 
@@ -434,3 +434,4 @@ export default async function greenlet(args, module) {
 [separate files]: https://www.w3.org/2018/12/games-workshop/report.html#threads
 [houdini bundler guidance]: https://houdini.how/usage
 [unpkg.com]: https://unpkg.com
+[paralleljs]: https://github.com/parallel-js/parallel.js
