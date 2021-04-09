@@ -6,7 +6,7 @@ JS Module Blocks (“module blocks”) are an effort by [Daniel Ehrenberg] and [
 
 Any API with a requirement to have code in separate file has been struggling to see adoption (see Web Workers or CSS Painting API as an example), _even when there are significant benefits to using them_. Forcing developers to put code into separate files is not only an [often-cited major DX hurdle][separate files], but is especially hard in the era of bundlers whose main purpose it is to put as much as possible into one file. 
 
-Any library that wants to make use of one of these APIs faces yet another additional challenge. If you published yoru library to npm and a user wants to use it via a CDN like [unpkg.com], the separate file is now being sourced from a different origin. Even with correct CORS headers, the origin will remain different, which affect how paths and as a result secondary resources will be resolved, if at all.
+Any library that wants to make use of one of these APIs faces yet another additional challenge. If you published your library to npm and a user wants to use it via a CDN like [unpkg.com], the separate file is now being sourced from a different origin. Even with correct CORS headers, the origin will remain different, which affect how paths and as a result secondary resources will be resolved, if at all.
 
 As a result, folks who want to use these APIs often resort to workarounds. These can have negative implications for performance, security or introduce other limitations. A few specific examples:
 
