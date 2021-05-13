@@ -4,11 +4,19 @@ JS Module Blocks (“module blocks”) are an effort by [Daniel Ehrenberg] and [
 
 ## Problem space
 
-The lack of inline modules in JavaScript has spawned some best practice that are really just workarounds and more often than not have negative performance implications. Sometimes, the lack of inline modules even form a hinderance to the adoption of APIs. A small sample of examples:
+Any API with a requirement to have code in separate file has been struggling to see adoption (see Web Workers or CSS Painting API as an example), _even when there are significant benefits to using them_. Forcing developers to put code into separate files is not only an [often-cited major DX hurdle][separate files], but is especially hard in the era of bundlers whose main purpose it is to put as much as possible into one file. 
 
-- Workers (and Worklets!) are often cited to be unergonomic because of the need of a separate file. Both Houdini and classic Web Workers can benefit greatly from inline modules.
-- JavaScript cannot represent a “task” in a way that can be shared across agents, short of stringification.
-- [Attempts][scheduler api] at building a scheduler for the web (á la GCD) have been constrained to the main thread due JS’s current inability to share code across realm boundaries.
+Any library that wants to make use of one of these APIs faces yet another additional challenge. If you published your library to npm and a user wants to use it via a CDN like [unpkg.com], the separate file is now being sourced from a different origin. Even with correct CORS headers, the origin will remain different, which affect how paths and as a result secondary resources will be resolved, if at all.
+
+As a result, folks who want to use these APIs often resort to workarounds. These can have negative implications for performance, security or introduce other limitations. A few specific examples:
+
+- Workers are often cited to be unergonomic because of the need of a separate file. As a result people avoid them altogether and prefer sacrificing main thread responsiveness over the complexity of moving long-running work to a worker.
+- Libraries ([1][paralleljs], [2][greenlet])that abstract workers to create more ergonomic APIs often resort to stringification and blobification, which brings all kinds of problems with CSP (stringification relies on `eval`) and paths (data URLs and blob URLs are considered to be on a different host).
+- CSS Painting API (and any Worklet for that matter) face a similar fate where developers will either resort to workarounds like above or need [extensive per-Bundler guidance][houdini bundler guidance] on how to use the APIs correctly in a modern setup, likely resulting in less adoption.
+
+There is also the long-standing problem that JavaScript cannot represent a “task” in a way that can be shared across realms with having to deal with _at least_ one of the above problems. This has prevented any [attempt][scheduler api] at building a scheduler for the web (á la GCD) to go beyond the main thread, which is one of the main ergonomic benefits of schedulers. 
+
+Module blocks aims to significantly improve the situation with the introduction of one, minimally invasive addition to the language and its integration into the HTML standard.
 
 ## High-level
 
@@ -48,7 +56,7 @@ As `module` is not a keyword in JavaScript, no newline is permitted between `mod
 
 ## HTML Integration
 
-There are 3 main integration points in the HTML spec for Module Blocks:
+There are 4 main integration points in the HTML spec for Module Blocks:
 
 ### Worker constructor 
 
@@ -421,3 +429,9 @@ export default async function greenlet(args, module) {
 [greenlet]: https://github.com/developit/greenlet
 [developit]: https://twitter.com/_developit
 [clooney]: https://github.com/GoogleChromeLabs/clooney
+[css painting api]: https://developer.mozilla.org/en-US/docs/Web/API/CSS_Painting_API 
+[web workers]: https://developer.mozilla.org/en-US/docs/Web/API/Worker
+[separate files]: https://www.w3.org/2018/12/games-workshop/report.html#threads
+[houdini bundler guidance]: https://houdini.how/usage
+[unpkg.com]: https://unpkg.com
+[paralleljs]: https://github.com/parallel-js/parallel.js
