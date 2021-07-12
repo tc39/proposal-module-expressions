@@ -126,7 +126,7 @@ It should be possible to run a module Worker with module blocks, and to `postMes
 
 ```js
 let workerBlock = module {
-  onmessage = function({data}) {
+  onmessage = async function({data}) {
     let mod = await import(data);
     postMessage(mod.fn());
   }
