@@ -19,6 +19,7 @@ contributors: Surma, Dan Ehrenberg
       AsyncFunctionExpression
       AsyncGeneratorExpression
       <ins>ModuleBlockExpression</ins>
+      <ins>ModuleFunctionExpression</ins>
       RegularExpressionLiteral
       TemplateLiteral[?Yield, ?Await, ~Tagged]
       CoverParenthesizedExpressionAndArrowParameterList[?Yield, ?Await] #parencover
@@ -31,6 +32,11 @@ contributors: Surma, Dan Ehrenberg
   <emu-grammar type="definition">
     ModuleBlockExpression :
       `module` [no LineTerminator here] `{` ModuleBody? `}`
+    ModuleFunctionExpression :
+      `module` FunctionExpression
+      `module` AsyncFunctionExpression
+      `module` GeneratorExpression
+      `module` AsyncGeneratorExpression
   </emu-grammar>
 
   <h2>Runtime Semantics: Evaluation</h2>

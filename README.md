@@ -46,6 +46,8 @@ Relative import statements are resolved against with the path of the _declaring_
 
 ## Syntax details
 
+(TODO: Add syntax for module functions.)
+
 ```
 PrimaryExpression :  InlineModuleExpression
 
@@ -54,7 +56,27 @@ InlineModuleExpression : module [no LineTerminator here] { Module }
 
 As `module` is not a keyword in JavaScript, no newline is permitted between `module` and `{`.
 
+### Module function syntactic sugar
+
+Most native platforms offer parallelism with functions as the fundamental primitive, not modules. JavaScript can’t (and shouldn’t) adopt other ecosystem’s primitives directly, as there are fundamental difference. However, to allow the implementation of syntactically lightweight abstractions that aim for similar ergonomics, it makes sense to also offer module _functions_. A module function is equivalent to a module block with a single, default export:
+
+```js
+const m = module function(a, b, c) {
+  // ...
+}
+
+// equivalent to
+
+const m = module {
+  export default function(a, b, c) {
+    // ...
+  }
+}
+```
+
 ## HTML Integration
+
+(HTML Integration is in progress in [this PR](https://github.com/whatwg/html/pull/7009).)
 
 There are 4 main integration points in the HTML spec for Module Blocks:
 
