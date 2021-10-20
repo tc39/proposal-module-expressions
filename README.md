@@ -46,21 +46,43 @@ Relative import statements are resolved against with the path of the _declaring_
 
 ## Syntax details
 
-```
-PrimaryExpression :  InlineModuleExpression
+(TODO: Add syntax for module functions.)
 
-InlineModuleExpression : module [no LineTerminator here] { Module }
+```
+PrimaryExpression :  ModuleBlockExpression
+                     ModuleFunctionExpression
+
+ModuleBlockExpression : `module` [no LineTerminator here] `{` ModuleBody? `}`
+
+ModuleFunctionExpression : `module` [no LineTerminator here] FunctionExpression
+// ... same for AsyncFunctionExpression et al.
 ```
 
-As `module` is not a keyword in JavaScript, no newline is permitted between `module` and `{`.
+As `module` is not a keyword in JavaScript, no newline is permitted after `module`.
+
+### Module function syntactic sugar
+
+Most native platforms offer parallelism with functions as the fundamental primitive, not modules. JavaScript can’t (and shouldn’t) adopt other ecosystem’s primitives directly, as there are fundamental difference. However, to allow the implementation of syntactically lightweight abstractions that aim for similar ergonomics, it makes sense to also offer module _functions_. A module function is equivalent to a module block with a single, default export:
+
+```js
+const m = module function(a, b, c) {
+  // ...
+}
+
+// desugars to
+
+const m = module {
+  export default function(a, b, c) {
+    // ...
+  }
+}
+```
 
 ## HTML Integration
 
+(HTML Integration is in progress in [this PR](https://github.com/whatwg/html/pull/7009).)
+
 There are 4 main integration points in the HTML spec for Module Blocks:
-
-### Worker constructor 
-
-`new Worker()` currently only accepts a path to a worker file. The proposal aims to also let it accept a Module Block directly (for `{type: "module"}` workers). 
 
 ### Worklets
 
@@ -98,6 +120,10 @@ addEventListener("message", async ({data}) => {
 });
 ```
 
+### Worker constructor 
+
+`new Worker()` currently only accepts a path to a worker file. The proposal originally aimed to also let it accept a Module Block directly (for `{type: "module"}` workers). _This is currently put on hold in favor of the in-flight [Blank Worker proposal](https://github.com/whatwg/html/issues/6911) by Ben Kelly._
+
 ## Realm interaction
 
 As module blocks behave like module specifiers, they are independent of the Realm where they exist, and they cannot close over any lexically scoped variable outside of the module--they just close over the Realm in which they're imported.
@@ -132,7 +158,7 @@ let workerBlock = module {
   }
 };
 
-let worker = new Worker(workerBlock, {type: "module"});
+let worker = new Worker({type: "module"}).addModule(workerBlock);
 worker.onmessage = ({data}) => alert(data);
 worker.postMessage(module { export function fn() { return "hello!" } });
 ```
@@ -322,6 +348,8 @@ In my opinion: Yes. The requirement that workers are in a separate file is one o
 ## Examples
 
 ### Greenlet
+
+_(This section needs an update with the Blank Worker proposal.)_
 
 If you know [Jason Miller’s][developit] [Greenlet] (or my [Clooney]), Module Blocks would be the perfect building block for such off-main-thread scheduler libraries.
 
