@@ -20,7 +20,9 @@ contributors: Surma, Dan Ehrenberg
       AsyncGeneratorExpression
       <ins>ModuleBlockExpression</ins>
       <ins>ModuleFunctionExpression</ins>
+      <ins>ModuleGeneratorExpression</ins>
       <ins>ModuleAsyncFunctionExpression</ins>
+      <ins>ModuleAsyncGeneratorExpression</ins>
       RegularExpressionLiteral
       TemplateLiteral[?Yield, ?Await, ~Tagged]
       CoverParenthesizedExpressionAndArrowParameterList[?Yield, ?Await] #parencover
@@ -34,9 +36,13 @@ contributors: Surma, Dan Ehrenberg
     ModuleBlockExpression :
       `module` [no LineTerminator here] `{` ModuleBody? `}`
     ModuleFunctionExpression :
-      `module` FunctionExpression
+      `module` [no LineTerminator here] FunctionExpression
+    ModuleGeneratorExpression :
+      `module` [no LineTerminator here] GeneratorExpression
     ModuleAsyncFunctionExpression :
-      `module` AsyncFunctionExpression
+      `module` [no LineTerminator here] AsyncFunctionExpression
+    ModuleAsyncGeneratorExpression :
+      `module` [no LineTerminator here] AsyncGeneratorExpression
   </emu-grammar>
 
   <h2>Runtime Semantics: Evaluation (for ModuleBlockExpression)</h2>
@@ -53,7 +59,19 @@ contributors: Surma, Dan Ehrenberg
   <emu-alg>
     1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%,  &laquo; [[HostDefined]], [[ModuleBlockBody]], [[SourceText]] &raquo;).
     1. Set _moduleBlock_.[[SourceText]] to the source text matched by |ModuleFunctionExpression|.
-    1. Let _parsedBody_ be ? ParseText("export default " + |FunctionExpression|, Module).
+    1. let _moduleFunctionSource_ be the source text matched by |FunctionExpression|.
+    1. Let _parsedBody_ be ? ParseText("export default " + _moduleFunctionSource_, Module).
+    1. Set _moduleBlock_.[[ModuleBlockBody]] to _parsedBody_.
+    1. Perform ! HostInitializeModuleBlock(_moduleBlock_).
+    1. Return _moduleBlock_.
+  </emu-alg>
+
+  <h2>Runtime Semantics: Evaluation (for ModuleGeneratorExpression)</h2>
+  <emu-alg>
+    1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%,  &laquo; [[HostDefined]], [[ModuleBlockBody]], [[SourceText]] &raquo;).
+    1. Set _moduleBlock_.[[SourceText]] to the source text matched by |ModuleGeneratorExpression|.
+    1. let _moduleFunctionSource_ be the source text matched by |GeneratorExpression|.
+    1. Let _parsedBody_ be ? ParseText("export default " + _moduleFunctionSource_, Module).
     1. Set _moduleBlock_.[[ModuleBlockBody]] to _parsedBody_.
     1. Perform ! HostInitializeModuleBlock(_moduleBlock_).
     1. Return _moduleBlock_.
@@ -63,13 +81,25 @@ contributors: Surma, Dan Ehrenberg
   <emu-alg>
     1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%,  &laquo; [[HostDefined]], [[ModuleBlockBody]], [[SourceText]] &raquo;).
     1. Set _moduleBlock_.[[SourceText]] to the source text matched by |ModuleAsyncFunctionExpression|.
-    1. Let _parsedBody_ be ? ParseText("export default " + |AsyncFunctionExpression|, Module).
+    1. let _moduleFunctionSource_ be the source text matched by |AsyncFunctionExpression|.
+    1. Let _parsedBody_ be ? ParseText("export default " + _moduleFunctionSource_, Module).
     1. Set _moduleBlock_.[[ModuleBlockBody]] to _parsedBody_.
     1. Perform ! HostInitializeModuleBlock(_moduleBlock_).
     1. Return _moduleBlock_.
   </emu-alg>
 </emu-clause>
   
+<h2>Runtime Semantics: Evaluation (for ModuleAsyncGeneratorExpression)</h2>
+<emu-alg>
+  1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%,  &laquo; [[HostDefined]], [[ModuleBlockBody]], [[SourceText]] &raquo;).
+  1. Set _moduleBlock_.[[SourceText]] to the source text matched by |ModuleAsyncGeneratorExpression|.
+  1. let _moduleFunctionSource_ be the source text matched by |AsyncGeneratorExpression|.
+  1. Let _parsedBody_ be ? ParseText("export default " + _moduleFunctionSource_, Module).
+  1. Set _moduleBlock_.[[ModuleBlockBody]] to _parsedBody_.
+  1. Perform ! HostInitializeModuleBlock(_moduleBlock_).
+  1. Return _moduleBlock_.
+</emu-alg>
+
 <emu-clause id="sec-moduleblock">
   <h1>ModuleBlock ( _body_ )</h1>
   <emu-alg>
