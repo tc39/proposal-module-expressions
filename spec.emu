@@ -45,7 +45,8 @@ contributors: Surma, Dan Ehrenberg
       `module` [no LineTerminator here] AsyncGeneratorExpression
   </emu-grammar>
 
-  <h2>Runtime Semantics: Evaluation (for ModuleBlockExpression)</h2>
+  <h2>Runtime Semantics: Evaluation</h2>
+  <emu-grammar>PrimaryExpression : ModuleBlockExpression</emu-grammar>
   <emu-alg>
     1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%,  &laquo; [[HostDefined]], [[ModuleBlockBody]], [[SourceText]] &raquo;).
     1. Set _moduleBlock_.[[SourceText]] to the source text matched by |ModuleBlockExpression|.
@@ -55,7 +56,7 @@ contributors: Surma, Dan Ehrenberg
     1. Return _moduleBlock_.
   </emu-alg>
 
-  <h2>Runtime Semantics: Evaluation (for ModuleFunctionExpression)</h2>
+  <emu-grammar>PrimaryExpression : ModuleFunctionExpression</emu-grammar>
   <emu-alg>
     1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%,  &laquo; [[HostDefined]], [[ModuleBlockBody]], [[SourceText]] &raquo;).
     1. Set _moduleBlock_.[[SourceText]] to the source text matched by |ModuleFunctionExpression|.
@@ -66,7 +67,7 @@ contributors: Surma, Dan Ehrenberg
     1. Return _moduleBlock_.
   </emu-alg>
 
-  <h2>Runtime Semantics: Evaluation (for ModuleGeneratorExpression)</h2>
+  <emu-grammar>PrimaryExpression : ModuleGeneratorExpression</emu-grammar>
   <emu-alg>
     1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%,  &laquo; [[HostDefined]], [[ModuleBlockBody]], [[SourceText]] &raquo;).
     1. Set _moduleBlock_.[[SourceText]] to the source text matched by |ModuleGeneratorExpression|.
@@ -77,7 +78,7 @@ contributors: Surma, Dan Ehrenberg
     1. Return _moduleBlock_.
   </emu-alg>
 
-  <h2>Runtime Semantics: Evaluation (for ModuleAsyncFunctionExpression)</h2>
+  <emu-grammar>PrimaryExpression : ModuleAsyncFunctionExpression</emu-grammar>
   <emu-alg>
     1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%,  &laquo; [[HostDefined]], [[ModuleBlockBody]], [[SourceText]] &raquo;).
     1. Set _moduleBlock_.[[SourceText]] to the source text matched by |ModuleAsyncFunctionExpression|.
@@ -87,18 +88,18 @@ contributors: Surma, Dan Ehrenberg
     1. Perform ! HostInitializeModuleBlock(_moduleBlock_).
     1. Return _moduleBlock_.
   </emu-alg>
-</emu-clause>
   
-<h2>Runtime Semantics: Evaluation (for ModuleAsyncGeneratorExpression)</h2>
-<emu-alg>
-  1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%,  &laquo; [[HostDefined]], [[ModuleBlockBody]], [[SourceText]] &raquo;).
-  1. Set _moduleBlock_.[[SourceText]] to the source text matched by |ModuleAsyncGeneratorExpression|.
-  1. let _moduleFunctionSource_ be the source text matched by |AsyncGeneratorExpression|.
-  1. Let _parsedBody_ be ? ParseText("export default " + _moduleFunctionSource_, Module).
-  1. Set _moduleBlock_.[[ModuleBlockBody]] to _parsedBody_.
-  1. Perform ! HostInitializeModuleBlock(_moduleBlock_).
-  1. Return _moduleBlock_.
-</emu-alg>
+  <emu-grammar>PrimaryExpression : ModuleAsyncGeneratorExpression</emu-grammar>
+  <emu-alg>
+    1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%,  &laquo; [[HostDefined]], [[ModuleBlockBody]], [[SourceText]] &raquo;).
+    1. Set _moduleBlock_.[[SourceText]] to the source text matched by |ModuleAsyncGeneratorExpression|.
+    1. let _moduleFunctionSource_ be the source text matched by |AsyncGeneratorExpression|.
+    1. Let _parsedBody_ be ? ParseText("export default " + _moduleFunctionSource_, Module).
+    1. Set _moduleBlock_.[[ModuleBlockBody]] to _parsedBody_.
+    1. Perform ! HostInitializeModuleBlock(_moduleBlock_).
+    1. Return _moduleBlock_.
+  </emu-alg>
+</emu-clause>
 
 <emu-clause id="sec-moduleblock">
   <h1>ModuleBlock ( _body_ )</h1>
