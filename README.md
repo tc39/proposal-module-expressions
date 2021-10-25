@@ -188,6 +188,14 @@ Module blocks could be transpiled to either data URLs, or to a module in a separ
 
 This proposal only allows anonymous module blocks. There are other proposals for named module _bundles_ (with URLs corresponding to the specifier of each JS module), including "[JS Module Bundles]" proposal, and [Web Bundles](https://www.ietf.org/id/draft-yasskin-wpack-bundled-exchanges-03.html). Note that there are significant privacy issues to solve with bundling to permit ad blockers; see [concerns from Brave](https://brave.com/webbundles-harmful-to-content-blocking-security-tools-and-the-open-web/).
 
+## TC39 Stage 3 Reviewers
+
+- Nicolò Ribaudo (@babel)
+- Jordan Harband (Coinbase)
+- Leo Balter (Salesforce)
+- Guy Bedford (Invited Expert)
+- Mathieu Hofman (agoric) 
+
 ## FAQs
 
 ### Can you close over variables? Can you reference values outside the module block?
