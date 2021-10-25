@@ -193,7 +193,7 @@ This proposal only allows anonymous module blocks. There are other proposals for
 - Nicolò Ribaudo (@babel)
 - Jordan Harband (Coinbase)
 - Leo Balter (Salesforce)
-- Guy Bedford (Invited Expert)
+- Guy Bedford (OpenJS Foundation)
 - Mathieu Hofman (Agoric)
 
 ## FAQs
