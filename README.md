@@ -194,7 +194,7 @@ This proposal only allows anonymous module blocks. There are other proposals for
 - Jordan Harband (Coinbase)
 - Leo Balter (Salesforce)
 - Guy Bedford (Invited Expert)
-- Mathieu Hofman (agoric) 
+- Mathieu Hofman (Agoric)
 
 ## FAQs
 
