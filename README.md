@@ -194,7 +194,7 @@ This proposal only allows anonymous module blocks. There are other proposals for
 - Jordan Harband (Coinbase)
 - Leo Balter (Salesforce)
 - Guy Bedford (OpenJS Foundation)
-- Mathieu Hofman (Agoric)
+- Kris Kowal (Agoric)
 - Jack Works (Sujitech)
 
 ## FAQs
