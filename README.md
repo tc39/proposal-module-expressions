@@ -195,6 +195,7 @@ This proposal only allows anonymous module blocks. There are other proposals for
 - Leo Balter (Salesforce)
 - Guy Bedford (OpenJS Foundation)
 - Mathieu Hofman (Agoric)
+- Jack Works (Sujitech)
 
 ## FAQs
 
