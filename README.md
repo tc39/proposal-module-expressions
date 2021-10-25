@@ -206,38 +206,6 @@ const m = module {
 }
 ```
 
-### What about a nice shorthand for modules that just contain one function?
-
-Something like this?
-
-```js
-const m = module {
-  export default (x) => x**2;
-}
-
-// abbreviates to
-
-const m = module (x) => x**2;
-```
-
-This definitely looks like it removes a lot of noise for single-function modules. However, it is unclear whether this will actually be a common pattern. It is also worth noting that this shorthand is only useful if the function does not need any imports:
-
-```js
-const m = module {
-  import {getUserDetails} from "./api-wrapper.js";
-
-  export default async (userId) => {...}
-}
-
-// abbreviates to
-
-// ???
-```
-
-You could use dynamic `import()` to move the dependencies into the function, but that is not only unidiomatic and breaks assumptions that bundlers make today, you’d also have to take care to use `Promise.all()` to avoid a waterfall loading pattern.
-
-I think it’s likely that module blocks will often have static imports and so the single-function module shorthand might not actually be useful in many cases. For now we plan to leave the MVP without such a shorthand and observe what kind of usage patterns emerge. If import-free single-function modules become a frequently recurring pattern, a module shorthand seems like a good idea to add.
-
 ### Can Module Blocks help with bundling?
 
 At first glance, it may look like Module Blocks could provide a bundling format for simple scenarios like this:
