@@ -190,7 +190,7 @@ This proposal only allows anonymous module blocks. There are other proposals for
 
 ## TC39 Stage 3 Reviewers
 
-- Nicolò Ribaudo (@babel)
+- Nicolò Ribaudo (Invited Expert - Babel)
 - Jordan Harband (Coinbase)
 - Leo Balter (Salesforce)
 - Guy Bedford (OpenJS Foundation)
