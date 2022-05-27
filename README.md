@@ -1,20 +1,35 @@
 # JS Module Blocks
 
-JS Module Blocks (“module blocks”) are an effort by [Daniel Ehrenberg] and [Surma][surma]. It is the result of a lot of prior art, most notably [Justin Fagnani]’s [Inline Modules] proposal and [Domenic][domenic denicola]’s and [Surma][surma]'s [Blöcks] proposal.
+JS Module Blocks (“module blocks”) are an effort by [Surma][surma]. It is the result of a lot of collaboration and prior art, most notably [Daniel Ehrenberg], [Justin Fagnani]’s [Inline Modules] proposal and [Domenic][domenic denicola]’s and [Surma][surma]'s [Blöcks] proposal.
 
 ## Problem space
 
-Any API with a requirement to have code in separate file has been struggling to see adoption (see Web Workers or CSS Painting API as an example), _even when there are significant benefits to using them_. Forcing developers to put code into separate files is not only an [often-cited major DX hurdle][separate files], but is especially hard in the era of bundlers whose main purpose it is to put as much as possible into one file. 
+Whenever developers try to make use of multi-threading in JavaScript — may that be Web Workers, Service Workers, Worklets like CSS Paint API or even other windows — they encounter a couple of problems. JavaScript’s inherent single-thread design prevents the sharing of memory (with the exception of `SharedArrayBuffer`) and as a direct result the sharing of functions and code. The typical paradigm of “run this function in another thread” is only possible in JavaScript today with workarounds that bring their own, significant drawbacks.
+
+Libraries that bring this pattern to JavaScript (e.g. [ParllelJS][paralleljs] or [Greenlet][greenlet]) resort to stringification of functions to be able to send code from one realm to another, and re-parse it (either through `eval` or blobification).
+
+This not only breaks a closure’s ability to close over values, but makes CSP problematic and can make path resolution (think `import()` or `fetch()`) behave unexpectedly, as data URLs and blob URLs are considered to be on a different host in some browsers.
+
+```js
+import greenlet from 'greenlet'
+
+const API_KEY = "...";
+
+let getName = greenlet(async username => {
+  // It *looks* like API_KEY is accessible to this closure, but due to how
+  // greenlet works, it is not.
+  let url = `https://api.github.com/users/${username}?key=${API_KEY}`
+  let res = await fetch(url)
+  let profile = await res.json()
+  return profile.name
+});
+```
+
+Additionally, any API that loads code from a separate file has been struggling to see adoption (see Web Workers or CSS Painting API), _even when there are significant benefits to using them_. Forcing developers to put code into separate files is not only an [often-cited major DX hurdle][separate files], but is especially hard in the era of bundlers whose main purpose it is to put as much as possible into one file.
 
 Any library that wants to make use of one of these APIs faces yet another additional challenge. If you published your library to npm and a user wants to use it via a CDN like [unpkg.com], the separate file is now being sourced from a different origin. Even with correct CORS headers, the origin will remain different, which affect how paths and as a result secondary resources will be resolved, if at all.
 
-As a result, folks who want to use these APIs often resort to workarounds. These can have negative implications for performance, security or introduce other limitations. A few specific examples:
-
-- Workers are often cited to be unergonomic because of the need of a separate file. As a result people avoid them altogether and prefer sacrificing main thread responsiveness over the complexity of moving long-running work to a worker.
-- Libraries ([1][paralleljs], [2][greenlet])that abstract workers to create more ergonomic APIs often resort to stringification and blobification, which brings all kinds of problems with CSP (stringification relies on `eval`) and paths (data URLs and blob URLs are considered to be on a different host).
-- CSS Painting API (and any Worklet for that matter) face a similar fate where developers will either resort to workarounds like above or need [extensive per-Bundler guidance][houdini bundler guidance] on how to use the APIs correctly in a modern setup, likely resulting in less adoption.
-
-There is also the long-standing problem that JavaScript cannot represent a “task” in a way that can be shared across realms with having to deal with _at least_ one of the above problems. This has prevented any [attempt][scheduler api] at building a scheduler for the web (á la GCD) to go beyond the main thread, which is one of the main ergonomic benefits of schedulers. 
+There is also the long-standing problem that JavaScript cannot represent a “task” in a way that can be shared across realms without having to deal with _at least_ one of the above problems. This has prevented any [attempt][scheduler api] at building a scheduler for the web (á la GCD) to go beyond the main thread, which is one of the main ergonomic benefits of schedulers.
 
 Module blocks aims to significantly improve the situation with the introduction of one, minimally invasive addition to the language and its integration into the HTML standard.
 
@@ -32,17 +47,11 @@ assert(moduleExports.y === 1);
 assert(await import(moduleBlock) === moduleExports);  // cached in the module map
 ```
 
-Importing a module block needs to be async, as module blocks may import other modules, which are fetched from the network. Module blocks may get imported multiple times, but will get cached in the module map and will return a reference to the same module.
-
-```js
-let moduleBlock = module {
-  export * from "https://foo.com/script.mjs";
-};
-```
+Importing a module block needs to be async, as module blocks may import other modules from the network. Module blocks may get imported multiple times, but will get cached in the module map and will return a reference to the same module.
 
 Module blocks are only imported through dynamic `import()`, and not through `import` statements, as there is no way to address them as a specifier string.
 
-Relative import statements are resolved against with the path of the _declaring_ module. This is especially important when sending module blocks to a worker.
+Relative import statements are resolved against with the path of the _declaring_ module. This is especially important when sending module blocks to other realms.
 
 ## Syntax details
 
@@ -59,24 +68,6 @@ ModuleFunctionExpression : `module` [no LineTerminator here] FunctionExpression
 ```
 
 As `module` is not a keyword in JavaScript, no newline is permitted after `module`.
-
-### Module function syntactic sugar
-
-Most native platforms offer parallelism with functions as the fundamental primitive, not modules. JavaScript can’t (and shouldn’t) adopt other ecosystem’s primitives directly, as there are fundamental difference. However, to allow the implementation of syntactically lightweight abstractions that aim for similar ergonomics, it makes sense to also offer module _functions_. A module function is equivalent to a module block with a single, default export:
-
-```js
-const m = module function(a, b, c) {
-  // ...
-}
-
-// desugars to
-
-const m = module {
-  export default function(a, b, c) {
-    // ...
-  }
-}
-```
 
 ## HTML Integration
 
@@ -120,7 +111,7 @@ addEventListener("message", async ({data}) => {
 });
 ```
 
-### Worker constructor 
+### Worker constructor
 
 `new Worker()` currently only accepts a path to a worker file. The proposal originally aimed to also let it accept a Module Block directly (for `{type: "module"}` workers). _This is currently put on hold in favor of the in-flight [Blank Worker proposal](https://github.com/whatwg/html/issues/6911) by Ben Kelly._
 
@@ -148,19 +139,19 @@ assert(m.o !== m1.o);
 
 ## Use with workers
 
-It should be possible to run a module Worker with module blocks, and to `postMessage` a module block to a worker:
+The most basic version of a off-thread scheduler is to run a worker that receives, imports and executes module blocks:
 
 ```js
 let workerBlock = module {
   onmessage = async function({data}) {
     let mod = await import(data);
-    postMessage(mod.fn());
+    postMessage(mod.default());
   }
 };
 
 let worker = new Worker({type: "module"}).addModule(workerBlock);
 worker.onmessage = ({data}) => alert(data);
-worker.postMessage(module { export function fn() { return "hello!" } });
+worker.postMessage(module { export default function() { return "hello!" } });
 ```
 
 Maybe it would be possible to store a module block in IndexedDB as well, but this is more debatable, as persistent code could be a security risk.
@@ -310,7 +301,7 @@ console.assert(await import(m1) === await import(m2));
 
 We've heard concerns from the TypeScript team that it could be difficult to type access to the global object within a module blocks. Unfortunately, this is part of a bigger pattern with TypeScript:
 
-It is notoriously difficult to define what kind of scope a TypeScript file should be executed in (Main thread vs worker vs service worker), which is often solved by having multiple tsconfig.json file and composited projects. In that scenario, it’s even harder to have code that is shared across these TS projects.
+It is notoriously difficult to define what kind of scope a TypeScript file should be executed in (Main thread vs worker vs service worker), which is often solved by having multiple `tsconfig.json` files and composited projects. In that scenario, it’s even harder to have code that is shared across these TS projects.
 
 When communicating with a Worker, you already need to force a type on the `event.data` to bring typing to the communication channel.
 
@@ -326,16 +317,13 @@ In my opinion: Yes. The requirement that workers are in a separate file is one o
 
 ### Greenlet
 
-_(This section needs an update with the Blank Worker proposal.)_
-
 If you know [Jason Miller’s][developit] [Greenlet] (or my [Clooney]), Module Blocks would be the perfect building block for such off-main-thread scheduler libraries.
 
 ```js
 import greenlet from "new-greenlet";
 
-const result =
-  await greenlet(
-    ["/api", "secretToken"],
+const func =
+  greenlet(
     module {
       export default async function (endpoint, token) {
         const response = await fetch(endpoint, {headers: {"Authorization": `Bearer ${token}`}});
@@ -345,6 +333,7 @@ const result =
       }
     }
   );
+const result = await func("/api", "secretToken");
 ```
 
 <details>
@@ -389,7 +378,8 @@ const workerQueue = new ReadableStream(
         return;
       }
       controller.enqueue(
-        new Worker(workerBlock, {name: `worker${this.workersCreated}`})
+        new Worker({type: "module", name: `worker${this.workersCreated}`})
+          .addModule(workerBlock)
       );
       this.workersCreated++;
     },
@@ -403,20 +393,22 @@ function getWorker() {
   return workerQueue.read().then(({ value }) => value);
 }
 
-export default async function greenlet(args, module) {
-  const worker = await getWorker();
-  worker.postMessage({ args, module });
-  return new Promise((resolve) => {
-    worker.addEventListener(
-      "message",
-      (ev) => {
-        const result = ev.data;
-        resolve(result);
-        releaseWorker(worker);
-      },
-      { once: true }
-    );
-  });
+export default function greenlet(args, module) {
+  return function(...args) {
+    return new Promise((resolve) => {
+      const worker = await getWorker();
+      worker.postMessage({ args, module });
+      worker.addEventListener(
+        "message",
+        (ev) => {
+          const result = ev.data;
+          resolve(result);
+          releaseWorker(worker);
+        },
+        { once: true }
+      );
+    });
+  };
 }
 ```
 
@@ -434,7 +426,7 @@ export default async function greenlet(args, module) {
 [greenlet]: https://github.com/developit/greenlet
 [developit]: https://twitter.com/_developit
 [clooney]: https://github.com/GoogleChromeLabs/clooney
-[css painting api]: https://developer.mozilla.org/en-US/docs/Web/API/CSS_Painting_API 
+[css painting api]: https://developer.mozilla.org/en-US/docs/Web/API/CSS_Painting_API
 [web workers]: https://developer.mozilla.org/en-US/docs/Web/API/Worker
 [separate files]: https://www.w3.org/2018/12/games-workshop/report.html#threads
 [houdini bundler guidance]: https://houdini.how/usage
