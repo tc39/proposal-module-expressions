@@ -168,3 +168,145 @@ contributors: Surma, Dan Ehrenberg
     <dd>Initializes a Module Block with host-dependent information.</dd>
   </dl>
 </emu-clause>
+
+
+<emu-clause id="sec-executable-code-and-execution-contexts">
+  <h1>Executable Code and Execution Contexts</h1>
+
+  <emu-clause id="sec-code-realms">
+    <h1>Realms</h1>
+    <p>Before it is evaluated, all ECMAScript code must be associated with a <dfn id="realm" variants="realms">realm</dfn>. Conceptually, a realm consists of a set of intrinsic objects, an ECMAScript global environment, all of the ECMAScript code that is loaded within the scope of that global environment, and other associated state and resources.</p>
+    <p>A realm is represented in this specification as a <dfn id="realm-record" variants="Realm Records">Realm Record</dfn> with the fields specified in <emu-xref href="#table-realm-record-fields"></emu-xref>:</p>
+    <emu-table id="table-realm-record-fields" caption="Realm Record Fields" oldids="table-21">
+      <table>
+        <tr>
+          <th>
+            Field Name
+          </th>
+          <th>
+            Value
+          </th>
+          <th>
+            Meaning
+          </th>
+        </tr>
+        <tr>
+          <td>
+            [[Intrinsics]]
+          </td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>
+            [[GlobalObject]]
+          </td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>
+            [[GlobalEnv]]
+          </td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>
+            [[TemplateMap]]
+          </td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>
+            <ins>[[ModuleMap]]</ins>
+          </td>
+          <td>
+            <ins>a List of Record { [[ReferencingScriptOrModule]]: Script Record or Module Record or *null*, [[Specifier]]: String, [[ModuleRecord]]: Module Record }</ins>
+          </td>
+          <td>
+            <p><ins>Module Records are cached separately per Realm: two imports from the same realm using the same specifier from the same referencing script or module must resolve to the same Module Record. The cache needs to be per-Realm to support cases when [[ReferencingScriptOrModule]] is *null*.</ins></p>
+            <p><ins>This List respects the following invariant:</ins></p>
+            <ul>
+              <li>
+                <ins>It does not contain two Records _record1_ and _record2_ such that _record1_.[[ReferencingScriptOrModule]] is _record2_.[[ReferencingScriptOrModule]] and _record1_.[[Specifier]] is _record2_.[[Specifier]].</ins>
+              </li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            [[HostDefined]]
+          </td>
+          <td></td>
+          <td></td>
+        </tr>
+      </table>
+    </emu-table>
+  </emu-clause>
+</emu-clause>
+
+<emu-clause id="sec-ecmascript-language-scripts-and-modules">
+  <h1>ECMAScript Language: Scripts and Modules</h1>
+
+  <emu-clause id="sec-modules">
+    <h1>Modules</h1>
+
+    <emu-clause id="sec-module-semantics">
+      <h1>Module Semantics</h1>
+
+      <emu-clause id="sec-resolveimportedmodule" type="abstract operation">
+        <h1>
+          <ins>
+            ResolveImportedModule (
+              _referencingScriptOrModule_: a Script Record, a Module Record, or *null*,
+              _specifier_: a String,
+            ): either a normal completion containing a Module Record or a throw completion
+          </ins>
+        </h1>
+        <dl class="header"></dl>
+
+        <emu-alg>
+          1. Let _currentRealm_ be the current Realm.
+          1. If there exists a Record _record_ in _currentRealm_.[[ModuleMap]] such that _record_.[[ReferencingScriptOrModule]] is _referencingScriptOrModule_ and _record_.[[Specifier]] is _specifier_, then
+            1. Return NormalCompletion(_record_.[[ModuleRecord]]).
+          1. Let _completion_ be Completion(HostResolveImportedModule(_referencingScriptOrModule_, _specifier_)).
+          1. If _completion_ is a normal completion, then
+            1. Add Record { [[ReferencingScriptOrModule]]: _referencingScriptOrModule_, [[Specifier]]: _specifier_, [[ModuleRecord]]: _completion_.[[Value]] } to _currentRealm_.[[ModuleMap]].
+          1. Return _completion_.
+        </emu-alg>
+
+        <emu-note type="editor">
+          Replace all the references to HostResolveImportedModule in the ecma262 speification with ResolveImportedModule.
+        </emu-note>
+      </emu-clause>
+
+      <emu-clause id="sec-hostresolveimportedmodule" type="host-defined abstract operation">
+        <h1>
+          HostResolveImportedModule (
+            _referencingScriptOrModule_: a Script Record, a Module Record, or *null*,
+            _specifier_: a String,
+          ): either a normal completion containing a Module Record or a throw completion
+        </h1>
+        <dl class="header">
+          <dt>description</dt>
+          <dd></dd>
+        </dl>
+
+        <p>An implementation of HostResolveImportedModule must conform to the following requirements:</p>
+        <ul>
+          <li>
+            If the returned Completion Record is a normal completion, it must be a normal completion containing an instance of a concrete subclass of Module Record.
+          </li>
+          <li>
+            If a Module Record corresponding to the pair _referencingScriptOrModule_, _specifier_ does not exist or cannot be created, an exception must be thrown.
+          </li>
+          <li>
+            <del>Each time this operation is called with a specific _referencingScriptOrModule_, _specifier_ pair as arguments it must return the same Module Record instance if it completes normally.</del>
+          </li>
+        </ul>
+      </emu-clause>
+    </emu-clause>
+  </emu-clause>
+</emu-clause>
