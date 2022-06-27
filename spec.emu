@@ -223,14 +223,25 @@ contributors: Surma, Dan Ehrenberg
             <ins>[[ModuleMap]]</ins>
           </td>
           <td>
-            <ins>a List of Record { [[ReferencingScriptOrModule]]: Script Record or Module Record or *null*, [[Specifier]]: String, [[ModuleRecord]]: Module Record }</ins>
+            <ins>a List of Record { [[ReferencingScriptOrModule]]: Script Record or Module Record or *null*, [[Specifier]]: String or Object, [[ModuleRecord]]: Module Record }</ins>
           </td>
           <td>
             <p><ins>Module Records are cached separately per Realm: two imports from the same realm using the same specifier from the same referencing script or module must resolve to the same Module Record. The cache needs to be per-Realm to support cases when [[ReferencingScriptOrModule]] is *null*.</ins></p>
-            <p><ins>This List respects the following invariant:</ins></p>
+            <p><ins>This List respects the following invariants:</ins></p>
             <ul>
               <li>
                 <ins>It does not contain two Records _record1_ and _record2_ such that _record1_.[[ReferencingScriptOrModule]] is _record2_.[[ReferencingScriptOrModule]] and _record1_.[[Specifier]] is _record2_.[[Specifier]].</ins>
+              </li>
+              <li>
+                <p><ins>For every Record _record_ it contains, if Type(_record_.[[Specifier]]) is Object then:</ins></p>
+                <ul>
+                  <li>
+                    <ins>_record_.[[Specifier]] has a [[ModuleBlockBody]] internal slot.</ins>
+                  </li>
+                  <li>
+                    <ins>_record_.[[ReferencingScriptOrModule]] is *null*.</ins>
+                  </li>
+                </ul>
               </li>
             </ul>
           </td>
@@ -256,21 +267,75 @@ contributors: Surma, Dan Ehrenberg
     <emu-clause id="sec-module-semantics">
       <h1>Module Semantics</h1>
 
+
+      <emu-clause id="sec-source-text-module-records">
+        <h1>Source Text Module Records</h1>
+
+        <emu-clause id="sec-parsemodule" type="abstract operation">
+          <h1>
+            ParseModule (
+              _sourceText_: ECMAScript source text<ins> or a |Module| Parse Node</ins>,
+              _realm_: unknown,
+              _hostDefined_: unknown,
+            ): a Source Text Module Record or a non-empty List of *SyntaxError* objects
+          </h1>
+          <dl class="header">
+            <dt>description</dt>
+            <dd>It creates a Source Text Module Record based upon the result of parsing _sourceText_ as a |Module|. <ins>If _sourceText_ is a Parse Node, it always returns a Source Text Module Record.</ins></dd>
+          </dl>
+          <emu-alg>
+            1. <ins>If _sourceText_ is a Parse Node,</ins>
+              1. <ins>Let _body_ be _sourceText_.</ins>
+            1. <ins>Else,</ins>
+              1. Let _body_ be ParseText(_sourceText_, |Module|).
+              1. If _body_ is a List of errors, return _body_.
+            1. Let _requestedModules_ be the ModuleRequests of _body_.
+            1. Let _importEntries_ be ImportEntries of _body_.
+            1. Let _importedBoundNames_ be ImportedLocalNames(_importEntries_).
+            1. Let _indirectExportEntries_ be a new empty List.
+            1. Let _localExportEntries_ be a new empty List.
+            1. Let _starExportEntries_ be a new empty List.
+            1. Let _exportEntries_ be ExportEntries of _body_.
+            1. For each ExportEntry Record _ee_ of _exportEntries_, do
+              1. If _ee_.[[ModuleRequest]] is *null*, then
+                1. If _ee_.[[LocalName]] is not an element of _importedBoundNames_, then
+                  1. Append _ee_ to _localExportEntries_.
+                1. Else,
+                  1. Let _ie_ be the element of _importEntries_ whose [[LocalName]] is the same as _ee_.[[LocalName]].
+                  1. If _ie_.[[ImportName]] is ~namespace-object~, then
+                    1. NOTE: This is a re-export of an imported module namespace object.
+                    1. Append _ee_ to _localExportEntries_.
+                  1. Else,
+                    1. NOTE: This is a re-export of a single name.
+                    1. Append the ExportEntry Record { [[ModuleRequest]]: _ie_.[[ModuleRequest]], [[ImportName]]: _ie_.[[ImportName]], [[LocalName]]: *null*, [[ExportName]]: _ee_.[[ExportName]] } to _indirectExportEntries_.
+              1. Else if _ee_.[[ImportName]] is ~all-but-default~, then
+                1. Assert: _ee_.[[ExportName]] is *null*.
+                1. Append _ee_ to _starExportEntries_.
+              1. Else,
+                1. Append _ee_ to _indirectExportEntries_.
+            1. Let _async_ be _body_ Contains `await`.
+            1. Return Source Text Module Record { [[Realm]]: _realm_, [[Environment]]: ~empty~, [[Namespace]]: ~empty~, [[CycleRoot]]: ~empty~, [[HasTLA]]: _async_, [[AsyncEvaluation]]: *false*, [[TopLevelCapability]]: ~empty~, [[AsyncParentModules]]: &laquo; &raquo;, [[PendingAsyncDependencies]]: ~empty~, [[Status]]: ~unlinked~, [[EvaluationError]]: ~empty~, [[HostDefined]]: _hostDefined_, [[ECMAScriptCode]]: _body_, [[Context]]: ~empty~, [[ImportMeta]]: ~empty~, [[RequestedModules]]: _requestedModules_, [[ImportEntries]]: _importEntries_, [[LocalExportEntries]]: _localExportEntries_, [[IndirectExportEntries]]: _indirectExportEntries_, [[StarExportEntries]]: _starExportEntries_, [[DFSIndex]]: ~empty~, [[DFSAncestorIndex]]: ~empty~ }.
+          </emu-alg>
+        </emu-clause>
+      </emu-clause>
+
       <emu-clause id="sec-resolveimportedmodule" type="abstract operation">
         <h1>
           <ins>
             ResolveImportedModule (
               _referencingScriptOrModule_: a Script Record, a Module Record, or *null*,
-              _specifier_: a String,
+              _specifier_: a String or an Object with a [[ModuleBlockBody]] internal slot,
             ): either a normal completion containing a Module Record or a throw completion
           </ins>
         </h1>
         <dl class="header"></dl>
 
         <emu-alg>
+          1. Assert: If Type(_specifier_) is Object, then _referencingScriptOrModule_ is *null*.
           1. Let _currentRealm_ be the current Realm.
           1. If there exists a Record _record_ in _currentRealm_.[[ModuleMap]] such that _record_.[[ReferencingScriptOrModule]] is _referencingScriptOrModule_ and _record_.[[Specifier]] is _specifier_, then
             1. Return NormalCompletion(_record_.[[ModuleRecord]]).
+          1. Assert: Type(_specifier_) is String.
           1. Let _completion_ be Completion(HostResolveImportedModule(_referencingScriptOrModule_, _specifier_)).
           1. If _completion_ is a normal completion, then
             1. Add Record { [[ReferencingScriptOrModule]]: _referencingScriptOrModule_, [[Specifier]]: _specifier_, [[ModuleRecord]]: _completion_.[[Value]] } to _currentRealm_.[[ModuleMap]].
@@ -313,7 +378,7 @@ contributors: Surma, Dan Ehrenberg
           <ins>
             ImportModuleDynamically (
               _referencingScriptOrModule_: a Script Record, a Module Record, or *null*,
-              _specifier_: a String,
+              _specifier_: a String or an Object with a [[ModuleBlockBody]] internal slot,
               _promiseCapability_: a PromiseCapability Record,
             ): ~unused~
           </ins>
@@ -324,6 +389,8 @@ contributors: Surma, Dan Ehrenberg
         </dl>
 
         <emu-alg>
+          1. If Type(_specifier_) is Object, then
+            1. Set _referencingScriptOrModule_ to *null*.
           1. Let _success_ be a new Abstract Closure that captures _referencingScriptOrModule_, _specifier_, and _promiseCapability_ and performs the following steps when called:
             1. Let _promise_ be ! PromiseResolve(%Promise%, *undefined*).
             1. Perform FinishDynamicImport(_referencingScriptOrModule_, _specifier_, _promiseCapability_, _promise_).
@@ -334,8 +401,47 @@ contributors: Surma, Dan Ehrenberg
           1. Let _currentRealm_ be the current Realm.
           1. If there exists a Record _record_ in _currentRealm_.[[ModuleMap]] such that _record_.[[ReferencingScriptOrModule]] is _referencingScriptOrModule_ and _record_.[[Specifier]] is _specifier_, then
             1. Perform _success_().
+          1. Else if Type(_specifier_) is Object, then
+            1. Perform ImportModuleBlockDynamically(_specifier_, _success_, _failure_).
           1. Else,
             1. Perform HostImportModuleDynamically(_referencingScriptOrModule_, _specifier_, _success_, _failure_).
+        </emu-alg>
+      </emu-clause>
+
+      <emu-clause id="sec-importmoduleblockdynamically" type="abstract operation">
+        <h1>
+          <ins>
+            ImportModuleBlockDynamically (
+              _moduleBlock_: an Object with a [[ModuleBlockBody]] internal slot,
+              _success_: an Abstract Closure,
+              _failure_: an Abstract Closure,
+            ): ~unused~
+          </ins>
+        </h1>
+        <dl class="header">
+          <dt>description</dt>
+          <dd>It links and evaluates the module represented by _moduleBlock_, and if it succeeds it adds the resulting Module Record to the current Realm Record's [[ModuleMap]] List.</dd>
+        </dl>
+
+        <emu-alg>
+          1. Let _currentRealm_ be the current Realm Record.
+          1. Let _moduleRecord_ be ParseModule(_moduleBlock_.[[ModuleBlockBody]], _currentRealm_, _moduleBlock_.[[HostDefined]]).
+          1. Assert: _moduleRecord_ is a Source Text Module Record.
+          1. Let _linkResult_ be Completion(_moduleRecord_.Link()).
+          1. If _linkResult_ is an abrupt completion, then
+            1. Perform _failure_(_linkResult_.[[Value]]).
+            1. Return ~unused~.
+          1. Let _evaluationPromise_ be _moduleRecord_.Evaluate().
+          1. Let _fulfilledClosure_ be a new Abstract Closure that captures _success_, _currentRealm_ and _moduleRecord_ and performs the following steps when called:
+            1. If there exists a Record _record_ in _currentRealm_.[[ModuleMap]] such that _record_.[[Specifier]] is _specifier_, then
+              1. Assert: _record_.[[ModuleRecord]] is _moduleRecord_.
+              1. TODO: Check if this is enough to protect against concurrent calls to ImportModuleBlockDynamically with the same _moduleBlock_. We do not want to insert the record twice.
+            1. Else,
+              1. Add Record { [[ReferencingScriptOrModule]]: *null*, [[Specifier]]: _specifier_, [[ModuleRecord]]: _moduleRecord_ } to _currentRealm_.[[ModuleMap]].
+            1. Perform _success_().
+          1. Let _onRejected_ be CreateBuiltinFunction(_failure_, 1, *""*, &laquo; &raquo;).
+          1. Perform PerformPromiseThen(_evaluationPromise_, _onFulfilled_, _onRejected_).
+          1. Return ~unused~.
         </emu-alg>
       </emu-clause>
 
@@ -354,7 +460,6 @@ contributors: Surma, Dan Ehrenberg
           <dd></dd>
         </dl>
         <p>An implementation of HostImportModuleDynamically must conform to the following requirements:</p>
-
         <ul>
           <li>
             It must return ~unused~. Success or failure must instead be signaled as discussed below.
