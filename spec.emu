@@ -158,13 +158,13 @@ contributors: Surma, Dan Ehrenberg
 </emu-clause>
 
 <emu-clause id="sec-hostinitializemoduleblock" type="host-defined abstract operation">
-      <h1>
-        HostInitializeModuleBlock (
-          _moduleBlock_: a Module Block,
-        )
-      </h1>
-      <dl class="header">
-        <dt>description</dt>
-        <dd>Initializes a Module Block with host-dependent information.</dd>
-      </dl>
-    </emu-clause>
+  <h1>
+    HostInitializeModuleBlock (
+      _moduleBlock_: a Module Block,
+    )
+  </h1>
+  <dl class="header">
+    <dt>description</dt>
+    <dd>Initializes a Module Block with host-dependent information.</dd>
+  </dl>
+</emu-clause>
