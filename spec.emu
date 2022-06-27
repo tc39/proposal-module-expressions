@@ -151,7 +151,7 @@ contributors: Surma, Dan Ehrenberg
       1. <ins>If Type(_specifier_) is not Object or _specifier_ does not have the internal slot [[ModuleBlockBody]]</ins>
         1. <ins>Set _specifier_ to ToString(_specifier_).</ins>
         1. IfAbruptRejectPromise(<del>_specifierString_</del><ins>_specifier_</ins>, _promiseCapability_).
-      1. Perform ! HostImportModuleDynamically(_referencingScriptOrModule_, <del>_specifierString_</del><ins>_specifier_</ins>, _promiseCapability_).
+      1. Perform ! <del>HostImportModuleDynamically</del><ins>ImportModuleDynamically</ins>(_referencingScriptOrModule_, <del>_specifierString_</del><ins>_specifier_</ins>, _promiseCapability_).
       1. Return _promiseCapability_.[[Promise]].
     </emu-alg>
   </emu-clause>
@@ -306,6 +306,90 @@ contributors: Surma, Dan Ehrenberg
             <del>Each time this operation is called with a specific _referencingScriptOrModule_, _specifier_ pair as arguments it must return the same Module Record instance if it completes normally.</del>
           </li>
         </ul>
+      </emu-clause>
+
+      <emu-clause id="sec-importmoduledynamically" type="abstract operation">
+        <h1>
+          <ins>
+            ImportModuleDynamically (
+              _referencingScriptOrModule_: a Script Record, a Module Record, or *null*,
+              _specifier_: a String,
+              _promiseCapability_: a PromiseCapability Record,
+            ): ~unused~
+          </ins>
+        </h1>
+        <dl class="header">
+          <dt>description</dt>
+          <dd>It performs any necessary setup work in order to make available the module corresponding to _specifier_ occurring within the context of the script or module represented by _referencingScriptOrModule_. _referencingScriptOrModule_ may be *null* if there is no active script or module when the <emu-xref href="#sec-import-calls">`import()`</emu-xref> expression occurs. It then performs FinishDynamicImport to finish the dynamic import process.</dd>
+        </dl>
+
+        <emu-alg>
+          1. Let _success_ be a new Abstract Closure that captures _referencingScriptOrModule_, _specifier_, and _promiseCapability_ and performs the following steps when called:
+            1. Let _promise_ be ! PromiseResolve(%Promise%, *undefined*).
+            1. Perform FinishDynamicImport(_referencingScriptOrModule_, _specifier_, _promiseCapability_, _promise_).
+          1. Let _failure_ be a new Abstract Closure with parameters (_error_) that captures _referencingScriptOrModule_, _specifier_, and _promiseCapability_ and performs the following steps when called:
+            1. Let _pc_ be ! NewPromiseCapability(%Promise%).
+            1. Perform ! Call(_pc_.[[Reject]], *undefined*, &laquo; _error_ &raquo;).
+            1. Perform FinishDynamicImport(_referencingScriptOrModule_, _specifier_, _promiseCapability_, _pc_.[[Promise]]).
+          1. Let _currentRealm_ be the current Realm.
+          1. If there exists a Record _record_ in _currentRealm_.[[ModuleMap]] such that _record_.[[ReferencingScriptOrModule]] is _referencingScriptOrModule_ and _record_.[[Specifier]] is _specifier_, then
+            1. Perform _success_().
+          1. Else,
+            1. Perform HostImportModuleDynamically(_referencingScriptOrModule_, _specifier_, _success_, _failure_).
+        </emu-alg>
+      </emu-clause>
+
+      <emu-clause id="sec-hostimportmoduledynamically" type="host-defined abstract operation">
+        <h1>
+          HostImportModuleDynamically (
+            _referencingScriptOrModule_: a Script Record, a Module Record, or *null*,
+            _specifier_: a String,
+            <del>_promiseCapability_: a PromiseCapability Record,</del>
+            <ins>_success_: an Abstract Closure,</ins>
+            <ins>_failure_: an Abstract Closure,</ins>
+          ): ~unused~
+        </h1>
+        <dl class="header">
+          <dt>description</dt>
+          <dd></dd>
+        </dl>
+        <p>An implementation of HostImportModuleDynamically must conform to the following requirements:</p>
+
+        <ul>
+          <li>
+            It must return ~unused~. Success or failure must instead be signaled as discussed below.
+          </li>
+          <li>
+            The host environment must conform to one of the two following sets of requirements:
+            <dl>
+              <dt>Success path</dt>
+
+              <dd>
+                <ul>
+                  <li>At some future time, the host environment must perform <del>FinishDynamicImport(_referencingScriptOrModule_, _specifier_, _promiseCapability_, _promise_), where _promise_ is a Promise resolved with *undefined*</del><ins>_success_()</ins>.</li>
+
+                  <li>Any subsequent call to HostResolveImportedModule after <del>FinishDynamicImport</del><ins>_success_</ins> has completed, given the arguments _referencingScriptOrModule_ and _specifier_, must return a normal completion containing a module which has already been evaluated, i.e. whose Evaluate concrete method has already been called and returned a normal completion.</li>
+                </ul>
+              </dd>
+
+              <dt>Failure path</dt>
+
+              <dd>
+                <ul>
+                  <li>At some future time, the host environment must perform <del>FinishDynamicImport(_referencingScriptOrModule_, _specifier_, _promiseCapability_, _promise_)</del><ins>_failure_(_error_)</ins>, where <del>_promise_</del><ins>_error_</ins> is <del>a Promise rejected with</del> an error representing the cause of failure.</li>
+                </ul>
+              </dd>
+            </dl>
+          </li>
+          <li>
+            <del>If the host environment takes the success path once for a given _referencingScriptOrModule_, _specifier_ pair, it must always do so for subsequent calls.</del>
+          </li>
+          <li>
+            <del>The operation must not call _promiseCapability_.[[Resolve]] or _promiseCapability_.[[Reject]], but instead must treat _promiseCapability_ as an opaque identifying value to be passed through to FinishDynamicImport.</del>
+          </li>
+        </ul>
+
+        <p>The actual process performed is host-defined, but typically consists of performing whatever I/O operations are necessary to allow HostResolveImportedModule to synchronously retrieve the appropriate Module Record, and then calling its Evaluate concrete method. This might require performing similar normalization as HostResolveImportedModule does.</p>
       </emu-clause>
     </emu-clause>
   </emu-clause>
