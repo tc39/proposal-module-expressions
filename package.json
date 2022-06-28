@@ -4,7 +4,7 @@
   "scripts": {
     "start": "npm run build-loose -- --watch",
     "build": "npm run build-loose -- --strict",
-    "build-loose": "ecmarkup --verbose spec.emu index.html"
+    "build-loose": "ecmarkup --load-biblio @tc39/ecma262-biblio --verbose spec.emu index.html"
   },
   "homepage": "https://github.com/tc39/proposal-js-module-blocks#readme",
   "repository": {
@@ -13,6 +13,7 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@tc39/ecma262-biblio": "2.0.2332",
     "ecmarkup": "^12.1.1"
   }
 }
