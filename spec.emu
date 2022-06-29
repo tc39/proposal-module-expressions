@@ -291,7 +291,7 @@ contributors: Surma, Dan Ehrenberg
         </emu-alg>
 
         <emu-note type="editor">
-          Replace all the references to HostResolveImportedModule in the ecma262 speification with ResolveImportedModule.
+          Replace all the references to HostResolveImportedModule in the ecma262 specification with ResolveImportedModule.
         </emu-note>
       </emu-clause>
 
