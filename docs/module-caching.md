@@ -2,19 +2,6 @@
 
 This proposal aims to enforce some guarantees about how many times modules are evaluated and in which contexts. ECMAScript already guarantees that importing the same module from the same file results in a single evaluation, but Module Blocks increase the complexity because they can be passed around.
 
-## Notes & deinitions
-
-- This document assumes that the imported modules do not have a named export `then`, since it makes the namespace object promise-like and thus interfers with dynamic imports.
-- The `createLegacyRealm` function used in some code snippets returns the `globalThis` object of a new Realm. In browsers it can be implemented like this:
-  ```js
-  function createLegacyRealm() {
-    const iframe = document.createElement("iframe");
-    iframe.style.display = "none";
-    document.body.appendChild(iframe);
-    return iframe.contentWindow;
-  }
-  ```
-
 ## Invariants
 
 1. Importing a module with the same string specifier twice from the same file results in a single evaluation (this is already guaranteed by ecma262):
@@ -88,7 +75,7 @@ This proposal aims to enforce some guarantees about how many times modules are e
 4. A module block is evaluated in the same realm as where it is imported:
    ```js
    const mod = module { globalThis.modEvaluated = true; };
-   const realm = createLegacyRealm();
+   const realm = createLegacyRealm(); // [1]
    await realm.eval(`s => import(s)`)(mod);
    assert(globalThis.modEvaluated === undefined);
    assert(realm.modEvaluated === true);
@@ -96,7 +83,7 @@ This proposal aims to enforce some guarantees about how many times modules are e
    This is consistent with the behavior of imports with string specifiers.
 5. Importing the same module block twice _from different Realms_ results in multiple evaluations:
    ```js
-   const realm = createLegacyRealm();
+   const realm = createLegacyRealm(); // [1]
    globalThis.count = 0;
    realm.count = 0;
    const mod = module { globalThis.count++; export const check = {}; };
@@ -164,7 +151,7 @@ These invariants cannot be enforced by ecma262, since it doesn't define how clon
    // /worker/foo.js
    export default "/worker";
    ```
-   It follows that when importing to copies of the same module block from the same realm, transitive dependencies should only be evaluated once:
+   It follows that when importing two copies of the same module block from the same realm, transitive dependencies should only be evaluated once:
    ```js
    globalThis.count = 0;
    const mod = module { export { check } from "./foo.js"; };
@@ -179,3 +166,16 @@ These invariants cannot be enforced by ecma262, since it doesn't define how clon
    export const check = {};
    ```
    We will be able to enforce the second example in ecma262 if we move the serialization&deserialization algorithms to ecma262: [tc39/ecma262#2555](https://github.com/tc39/ecma262/issues/2555).
+
+---
+
+[1] The `createLegacyRealm` function used in some code snippets returns the `globalThis` object of a new Realm. In browsers it can be implemented like this:
+
+```js
+function createLegacyRealm() {
+  const iframe = document.createElement("iframe");
+  iframe.style.display = "none";
+  document.body.appendChild(iframe);
+  return iframe.contentWindow;
+}
+```
