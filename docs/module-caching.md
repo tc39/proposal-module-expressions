@@ -32,14 +32,14 @@ This proposal aims to enforce some new guarantees around how module evaluations 
    // file.js
    export const check = {};
    ```
-2. Importing a module with the same string specifier from two different modules defined in the same file and evaluated the same Realm results in a single evaluation:
+2. Importing a module with the same string specifier from the top-level or from any module blocks defined in the same source text module and evaluated the same Realm results in a single evaluation:
    ```js
    // main.js
    import { check as c1 } from "./file.js";
    const mod = module { export { check } from "./file.js"; };
    const { check: c2 } = await import(mod);
    assert(c1 === c2);
-   
+
    // file.js
    export const check = {};
    ```
@@ -50,7 +50,19 @@ This proposal aims to enforce some new guarantees around how module evaluations 
    const { check: c2 } = await import(mod1);
    const { check: c2 } = await import(mod2);
    assert(c2 === c2);
-   
+
+   // file.js
+   export const check = {};
+   ```
+   ```js
+   import { check as c1 } from "./file.js";
+   const mod = module {
+      const nested = module { export { check } from "./file.js"; };
+      export const { check } = await import(nested);
+   };
+   const { check: c2 } = await import(mod);
+   assert(c1 === c2);
+
    // file.js
    export const check = {};
    ```
@@ -93,7 +105,7 @@ This proposal aims to enforce some new guarantees around how module evaluations 
    assert(c1 !== c2);
    ```
    This is consistent with the behavior of imports with string specifiers.
-6. Importing two different module blocks results in two evaluations and two different namespace objects. Two module blocks `mod1` and `mod2` are considered different if `mod1 !== mod2`:
+6. Importing two different module blocks, even with identical content, results in two evaluations and two different namespace objects. Two module blocks `mod1` and `mod2` are considered different if `mod1 !== mod2`:
    ```js
    globalThis.count = 0;
    const mod1 = module { globalThis.count++; export const check = {}; };
@@ -113,27 +125,12 @@ This proposal aims to enforce some new guarantees around how module evaluations 
    assert(c1 !== c2);
    assert(globalThis.count === 2);
    ```
-   ```js
-   globalThis.count = 0;
-   const mod = module {};
-   const worker = new Worker(`data:text/javascript,
-     addEventListener("message", msg => postMessage(msg.data))
-   `);
-   worker.addEventListener("message", ({ data: mod2 }) => {
-     assert(mod !== mod2);
-     const { check: c1 } = await import(mod);
-     const { check: c2 } = await import(mod2);
-     assert(c1 !== c2);
-     assert(globalThis.count === 2);
-   });
-   worker.postMessage(mod);
-   ```
 
 ## Invariants enforced by the HTML specification
 
 These invariants cannot be enforced by ECMA-262, since it doesn't define how cloning works and how string specifiers are resolved. They will be respected by the HTML integration, and the champion group suggests that hosts that have a similar modules model could follow these patterns.
 
-7. When serializing&deserializing a module block, the "referrer" used as the base to resolve string specifiers should be kept the same:
+7. When serializing and deserializing a module block, the "referrer" used as the base to resolve string specifiers should be kept the same:
    ```js
    // /main.js
    const worker = new Worker("./worker/worker.js");
