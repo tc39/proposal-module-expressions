@@ -130,7 +130,7 @@ This proposal aims to enforce some new guarantees around how module evaluations 
 
 These invariants cannot be enforced by ECMA-262, since it doesn't define how cloning works and how string specifiers are resolved. They will be respected by the HTML integration, and the champion group suggests that hosts that have a similar modules model could follow these patterns.
 
-7. When serializing and deserializing a module block, the "referrer" used as the base to resolve string specifiers should be kept the same:
+7. When serializing and deserializing a module block, the "base" used to resolve string specifiers (for example, the URL of the importer module) should be kept the same:
    ```js
    // /main.js
    const worker = new Worker("./worker/worker.js");
