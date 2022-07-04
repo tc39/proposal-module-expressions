@@ -41,13 +41,12 @@ contributors: Surma, Dan Ehrenberg
     <h1>Runtime Semantics: Evaluation</h1>
     <emu-grammar>PrimaryExpression : ModuleBlockExpression</emu-grammar>
     <emu-alg>
-      1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%,  &laquo; [[ModuleBlockBody]], [[SourceText]], [[TopLevelScriptOrModule]] &raquo;).
+      1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%,  &laquo; [[ModuleBlockBody]], [[SourceText]], [[HostDefinedResolutionBase]] &raquo;).
       1. Set _moduleBlock_.[[SourceText]] to the source text matched by |ModuleBlockExpression|.
       1. Let _parsedBody_ be ? ParseText(_body_, Module).
       1. Set _moduleBlock_.[[ModuleBlockBody]] to _parsedBody_.
       1. Let _currentScriptOrModule_ be GetActiveScriptOrModule().
-      1. Set _moduleBlock_.[[TopLevelScriptOrModule]] to GetTopLevelScriptOrModule(_currentScriptOrModule_).
-        1. TODO: Script Records and Module Records are probably not serializable, and this is a problem when defining structured cloning of ModuleBlock objects. We probably need a way for host to specify a custom _id_ (for example, HTML would use the file URL), with the note that module resolution is (already) cached per-Realm based on the (_id_, _specifier_) pair.
+      1. Set _moduleBlock_.[[HostDefinedResolutionBase]] to GetHostDefinedResolutionBase(_currentScriptOrModule_).
       1. Return _moduleBlock_.
     </emu-alg>
   </emu-clause>
@@ -162,14 +161,14 @@ contributors: Surma, Dan Ehrenberg
             <ins>[[ModuleMap]]</ins>
           </td>
           <td>
-            <ins>a List of Record { [[ReferencingScriptOrModule]]: Script Record or Module Record or *null*, [[Specifier]]: String or Object, [[ModuleRecord]]: Module Record }</ins>
+            <ins>a List of Record { [[HostDefinedResolutionBase]]: unknown or *null*, [[Specifier]]: String or Object, [[ModuleRecord]]: Module Record }</ins>
           </td>
           <td>
-            <p><ins>Module Records are cached separately per Realm: two imports from the same realm using the same specifier from the same referencing script or module must resolve to the same Module Record. The cache needs to be per-Realm to support cases when [[ReferencingScriptOrModule]] is *null*.</ins></p>
+            <p><ins>Module Records are cached separately per Realm: two imports from the same realm using the same specifier from the same referencing script or module must resolve to the same Module Record.</ins></p>
             <p><ins>This List respects the following invariants:</ins></p>
             <ul>
               <li>
-                <ins>It does not contain two Records _record1_ and _record2_ such that _record1_.[[ReferencingScriptOrModule]] is _record2_.[[ReferencingScriptOrModule]] and _record1_.[[Specifier]] is _record2_.[[Specifier]].</ins>
+                <ins>It does not contain two Records _record1_ and _record2_ such that _record1_.[[HostDefinedResolutionBase]] is _record2_.[[HostDefinedResolutionBase]] and _record1_.[[Specifier]] is _record2_.[[Specifier]].</ins>
               </li>
               <li>
                 <p><ins>For every Record _record_ it contains, if Type(_record_.[[Specifier]]) is Object then:</ins></p>
@@ -178,7 +177,7 @@ contributors: Surma, Dan Ehrenberg
                     <ins>_record_.[[Specifier]] has a [[ModuleBlockBody]] internal slot.</ins>
                   </li>
                   <li>
-                    <ins>_record_.[[ReferencingScriptOrModule]] is *null*.</ins>
+                    <ins>_record_.[[HostDefinedResolutionBase]] is *null*.</ins>
                   </li>
                 </ul>
               </li>
@@ -200,12 +199,93 @@ contributors: Surma, Dan Ehrenberg
 <emu-clause id="sec-ecmascript-language-scripts-and-modules">
   <h1>ECMAScript Language: Scripts and Modules</h1>
 
+
+  <emu-clause id="sec-scripts">
+    <h1>Scripts</h1>
+
+    <emu-clause id="sec-script-records">
+      <h1>Script Records</h1>
+
+      <p>A <dfn id="script-record" variants="Script Records">Script Record</dfn> encapsulates information about a script being evaluated. Each script record contains the fields listed in <emu-xref href="#table-script-records"></emu-xref>.</p>
+
+      <emu-table id="table-script-records" caption="Script Record Fields">
+        <table>
+          <thead>
+            <tr>
+              <th>
+                Field Name
+              </th>
+              <th>
+                Value Type
+              </th>
+              <th>
+                Meaning
+              </th>
+            </tr>
+          </thead>
+          <tr>
+            <td>
+              [[Realm]]
+            </td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>
+              [[ECMAScriptCode]]
+            </td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>
+              [[HostDefined]]
+            </td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>
+              <ins>[[HostDefinedResolutionBase]]</ins>
+            </td>
+            <td>
+              <ins>anything</ins>
+            </td>
+            <td>
+              <ins>Host-defined data passed to HostResolveImportedModule to resolve import specifiers. It is recursively copied from top-level scripts and modules to their nested ModuleBlocks.</ins>
+            </td>
+          </tr>
+        </table>
+      </emu-table>
+    </emu-clause>
+
+    <emu-clause id="sec-parse-script" type="abstract operation">
+      <h1>
+        ParseScript (
+          _sourceText_: ECMAScript source text,
+          _realm_: unknown,
+          _hostDefined_: unknown,
+          <ins>_hostDefinedResolutionBase_: unknown,</ins>
+        ): a Script Record or a non-empty List of *SyntaxError* objects
+      </h1>
+      <dl class="header">
+        <dt>description</dt>
+        <dd>It creates a Script Record based upon the result of parsing _sourceText_ as a |Script|.</dd>
+      </dl>
+
+      <emu-alg>
+        1. Let _script_ be ParseText(_sourceText_, |Script|).
+        1. If _script_ is a List of errors, return _script_.
+        1. Return Script Record { [[Realm]]: _realm_, [[ECMAScriptCode]]: _script_, [[HostDefined]]: _hostDefined_, <ins>[[HostDefinedResolutionBase]]: _hostDefinedResolutionBase_</ins> }.
+      </emu-alg>
+    </emu-clause>
+  </emu-clause>
+
   <emu-clause id="sec-modules">
     <h1>Modules</h1>
 
     <emu-clause id="sec-module-semantics">
       <h1>Module Semantics</h1>
-
 
       <emu-clause id="sec-source-text-module-records">
         <h1>Source Text Module Records</h1>
@@ -275,15 +355,19 @@ contributors: Surma, Dan Ehrenberg
             </tr>
             <tr>
               <td>
-                <ins>[[TopLevelScriptOrModule]]</ins>
+                <ins>[[HostDefinedResolutionBase]]</ins>
               </td>
               <td>
-                <ins>a Script Record, a Module Record, *null*.</ins>
+                <ins>anything</ins>
               </td>
               <td>
-                <p><ins>The top-level context where this module has been defined. The default value of [[TopLevelScriptOrModule]] is the Module Record itself, representing a Module Record created by the host with a ParseModule call. It can only be a Script Record or *null* when the Module Record is the result of importing a ModuleBlock.</ins></p>
+                <p><ins>Host-defined data passed to HostResolveImportedModule to resolve import specifiers. It is recursively copied from top-level scripts and modules to their nested ModuleBlocks.</ins></p>
+                <p><ins>It is *null* if the Module Record is an instantiation of a ModuleBlock defined in a context without an active script or module.</ins></in></p>
                 <emu-note>
-                  <p><ins>An example of when [[TopLevelScriptOrModule]] can be *null* is in a web browser host. There, if a user clicks on a control given by</ins></p>
+                  <ins>For example, hosts that use URL-based imports resolution could use [[HostDefinedResolutionBase]] to store the URL of file containing the current module.</ins>
+                </emu-note>
+                <emu-note>
+                  <p><ins>An example of when [[HostDefinedResolutionBase]] can be *null* is in a web browser host. There, if a user clicks on a control given by</ins></p>
 
                   <pre><code class="html">&lt;button type="button" onclick="import(module {})"&gt;Click me&lt;/button&gt;</code></pre>
 
@@ -300,6 +384,7 @@ contributors: Surma, Dan Ehrenberg
               _sourceText_: ECMAScript source text<ins> or a |Module| Parse Node</ins>,
               _realm_: unknown,
               _hostDefined_: unknown,
+              <ins>_hostDefinedResolutionBase_: unknown,</ins>
             ): a Source Text Module Record or a non-empty List of *SyntaxError* objects
           </h1>
           <dl class="header">
@@ -337,18 +422,16 @@ contributors: Surma, Dan Ehrenberg
               1. Else,
                 1. Append _ee_ to _indirectExportEntries_.
             1. Let _async_ be _body_ Contains `await`.
-            1. <del>Return</del><ins>Let _moduleRecord_ be the</ins> Source Text Module Record { [[Realm]]: _realm_, [[Environment]]: ~empty~, [[Namespace]]: ~empty~, [[CycleRoot]]: ~empty~, [[HasTLA]]: _async_, [[AsyncEvaluation]]: *false*, [[TopLevelCapability]]: ~empty~, [[AsyncParentModules]]: &laquo; &raquo;, [[PendingAsyncDependencies]]: ~empty~, [[Status]]: ~unlinked~, [[EvaluationError]]: ~empty~, [[HostDefined]]: _hostDefined_, [[ECMAScriptCode]]: _body_, [[Context]]: ~empty~, [[ImportMeta]]: ~empty~, [[RequestedModules]]: _requestedModules_, [[ImportEntries]]: _importEntries_, [[LocalExportEntries]]: _localExportEntries_, [[IndirectExportEntries]]: _indirectExportEntries_, [[StarExportEntries]]: _starExportEntries_, [[DFSIndex]]: ~empty~, [[DFSAncestorIndex]]: ~empty~, <ins>[[TopLevelScriptOrModule]]: ~empty~</ins> }.
-            1. <ins>Set _moduleRecord_.[[TopLevelScriptOrModule]] to _moduleRecord_.</ins>
-            1. <ins>Return _moduleRecord_.</ins>
+            1. Return Source Text Module Record { [[Realm]]: _realm_, [[Environment]]: ~empty~, [[Namespace]]: ~empty~, [[CycleRoot]]: ~empty~, [[HasTLA]]: _async_, [[AsyncEvaluation]]: *false*, [[TopLevelCapability]]: ~empty~, [[AsyncParentModules]]: &laquo; &raquo;, [[PendingAsyncDependencies]]: ~empty~, [[Status]]: ~unlinked~, [[EvaluationError]]: ~empty~, [[HostDefined]]: _hostDefined_, <ins>[[HostDefinedResolutionBase]]: _hostDefinedResolutionBase_,</ins> [[ECMAScriptCode]]: _body_, [[Context]]: ~empty~, [[ImportMeta]]: ~empty~, [[RequestedModules]]: _requestedModules_, [[ImportEntries]]: _importEntries_, [[LocalExportEntries]]: _localExportEntries_, [[IndirectExportEntries]]: _indirectExportEntries_, [[StarExportEntries]]: _starExportEntries_, [[DFSIndex]]: ~empty~, [[DFSAncestorIndex]]: ~empty~ }.
           </emu-alg>
         </emu-clause>
 
         <emu-clause id="sec-gettoplevelscriptormodule" type="abstract operation">
           <h1>
             <ins>
-              GetTopLevelScriptOrModule (
+              GetHostDefinedResolutionBase (
                 _currentScriptOrModule_: a Script Record, a Module Record, or null
-              ): a Script Record, a Module Record, or null
+              ): unknown, or null
             </ins>
           </h1>
           <dl class="header"></dl>
@@ -356,10 +439,7 @@ contributors: Surma, Dan Ehrenberg
           <emu-alg>
             1. If _currentScriptOrModule_ is *null*, then
               1. Return *null*.
-            1. Else if _currentScriptOrModule_ is a Script Record, then
-              1. Return _currentScriptOrModule_.
-            1. Else,
-              1. Return _currentScriptOrModule_.[[TopLevelScriptOrModule]].
+            1. Return _currentScriptOrModule_.[[HostDefinedResolutionBase]].
           </emu-alg>
         </emu-clause>
       </emu-clause>
@@ -377,14 +457,14 @@ contributors: Surma, Dan Ehrenberg
 
         <emu-alg>
           1. Assert: If Type(_specifier_) is Object, then _referencingScriptOrModule_ is *null*.
-          1. Set _referencingScriptOrModule_ to GetTopLevelScriptOrModule(_referencingScriptOrModule_).
+          1. Set _resolutionBase_ to GetHostDefinedResolutionBase(_referencingScriptOrModule_).
           1. Let _currentRealm_ be the current Realm Record.
-          1. If there exists a Record _record_ in _currentRealm_.[[ModuleMap]] such that _record_.[[ReferencingScriptOrModule]] is _referencingScriptOrModule_ and _record_.[[Specifier]] is _specifier_, then
+          1. If there exists a Record _record_ in _currentRealm_.[[ModuleMap]] such that _record_.[[HostDefinedResolutionBase]] is _resolutionBase_ and _record_.[[Specifier]] is _specifier_, then
             1. Return NormalCompletion(_record_.[[ModuleRecord]]).
           1. Assert: Type(_specifier_) is String.
-          1. Let _completion_ be Completion(HostResolveImportedModule(_referencingScriptOrModule_, _specifier_)).
+          1. Let _completion_ be Completion(HostResolveImportedModule(_resolutionBase_, _specifier_)).
           1. If _completion_ is a normal completion, then
-            1. Add Record { [[ReferencingScriptOrModule]]: _referencingScriptOrModule_, [[Specifier]]: _specifier_, [[ModuleRecord]]: _completion_.[[Value]] } to _currentRealm_.[[ModuleMap]].
+            1. Add Record { [[HostDefinedResolutionBase]]: _resolutionBase_, [[Specifier]]: _specifier_, [[ModuleRecord]]: _completion_.[[Value]] } to _currentRealm_.[[ModuleMap]].
           1. Return _completion_.
         </emu-alg>
 
@@ -396,7 +476,8 @@ contributors: Surma, Dan Ehrenberg
       <emu-clause id="sec-hostresolveimportedmodule" type="host-defined abstract operation">
         <h1>
           HostResolveImportedModule (
-            _referencingScriptOrModule_: a Script Record, a Module Record, or *null*,
+            <del>_referencingScriptOrModule_: a Script Record, a Module Record, or *null*,</del>
+            <ins>_resolutionBase_: unknown,</ins>
             _specifier_: a String,
           ): either a normal completion containing a Module Record or a throw completion
         </h1>
@@ -411,7 +492,7 @@ contributors: Surma, Dan Ehrenberg
             If the returned Completion Record is a normal completion, it must be a normal completion containing an instance of a concrete subclass of Module Record.
           </li>
           <li>
-            If a Module Record corresponding to the pair _referencingScriptOrModule_, _specifier_ does not exist or cannot be created, an exception must be thrown.
+            If a Module Record corresponding to the pair (<del>_referencingScriptOrModule_</del><ins>_resolutionBase_</ins>, _specifier_) does not exist or cannot be created, an exception must be thrown.
           </li>
           <li>
             <del>Each time this operation is called with a specific _referencingScriptOrModule_, _specifier_ pair as arguments it must return the same Module Record instance if it completes normally.</del>
@@ -445,7 +526,7 @@ contributors: Surma, Dan Ehrenberg
             1. Perform ! Call(_pc_.[[Reject]], *undefined*, &laquo; _error_ &raquo;).
             1. Perform FinishDynamicImport(_referencingScriptOrModule_, _specifier_, _promiseCapability_, _pc_.[[Promise]]).
           1. Let _currentRealm_ be the current Realm Record.
-          1. If there exists a Record _record_ in _currentRealm_.[[ModuleMap]] such that _record_.[[ReferencingScriptOrModule]] is _referencingScriptOrModule_ and _record_.[[Specifier]] is _specifier_, then
+          1. If there exists a Record _record_ in _currentRealm_.[[ModuleMap]] such that _record_.[[HostDefinedResolutionBase]] is _resolutionBase_ and _record_.[[Specifier]] is _specifier_, then
             1. Perform _success_().
           1. Else if Type(_specifier_) is Object, then
             1. Perform ImportModuleBlockDynamically(_specifier_, _success_, _failure_).
@@ -472,7 +553,7 @@ contributors: Surma, Dan Ehrenberg
         <emu-alg>
           1. Let _currentRealm_ be the current Realm Record.
           1. TODO: HTML uses the _moduleRecord_.[[HostDefined]] slot (_hostDefined_) to associate some extra data to modules, for example a list to keep track of unhandled promise rejections and some fetch options to fetch the imported modules. We might need a new host hook to generate the contents of this slot.
-          1. Let _moduleRecord_ be ParseModule(_moduleBlock_.[[ModuleBlockBody]], _currentRealm_, _hostDefined_).
+          1. Let _moduleRecord_ be ParseModule(_moduleBlock_.[[ModuleBlockBody]], _currentRealm_, _hostDefined_, _moduleBlock_.[[HostDefinedResolutionBase]]).
           1. Assert: _moduleRecord_ is a Source Text Module Record.
           1. Set _moduleRecord_.[[TopLevelScriptOrModule]] to _moduleBlock_.[[TopLevelScriptOrModule]].
           1. Let _linkResult_ be Completion(_moduleRecord_.Link()).
@@ -485,7 +566,7 @@ contributors: Surma, Dan Ehrenberg
               1. Assert: _record_.[[ModuleRecord]] is _moduleRecord_.
               1. TODO: Check if this is enough to protect against concurrent calls to ImportModuleBlockDynamically with the same _moduleBlock_. We do not want to insert the record twice.
             1. Else,
-              1. Add Record { [[ReferencingScriptOrModule]]: *null*, [[Specifier]]: _specifier_, [[ModuleRecord]]: _moduleRecord_ } to _currentRealm_.[[ModuleMap]].
+              1. Add Record { [[HostDefinedResolutionBase]]: *null*, [[Specifier]]: _specifier_, [[ModuleRecord]]: _moduleRecord_ } to _currentRealm_.[[ModuleMap]].
             1. Perform _success_().
           1. Let _onRejected_ be CreateBuiltinFunction(_failure_, 1, *""*, &laquo; &raquo;).
           1. Perform PerformPromiseThen(_evaluationPromise_, _onFulfilled_, _onRejected_).
