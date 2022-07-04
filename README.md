@@ -55,16 +55,10 @@ Relative import statements are resolved against with the path of the _declaring_
 
 ## Syntax details
 
-(TODO: Add syntax for module functions.)
-
 ```
 PrimaryExpression :  ModuleBlockExpression
-                     ModuleFunctionExpression
 
 ModuleBlockExpression : `module` [no LineTerminator here] `{` ModuleBody? `}`
-
-ModuleFunctionExpression : `module` [no LineTerminator here] FunctionExpression
-// ... same for AsyncFunctionExpression et al.
 ```
 
 As `module` is not a keyword in JavaScript, no newline is permitted after `module`.
