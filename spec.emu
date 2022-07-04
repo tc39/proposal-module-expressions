@@ -93,7 +93,7 @@ contributors: Surma, Dan Ehrenberg
 
     <emu-grammar>ImportCall : `import` `(` AssignmentExpression `)`</emu-grammar>
     <emu-alg>
-      1. Let _referencingScriptOrModule_ be ! GetActiveScriptOrModule().
+      1. Let _referencingScriptOrModule_ be GetActiveScriptOrModule().
       1. Let _argRef_ be the result of evaluating |AssignmentExpression|.
       1. Let _specifier_ be ? GetValue(_argRef_).
       1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
@@ -282,7 +282,7 @@ contributors: Surma, Dan Ehrenberg
 
         <emu-alg>
           1. Assert: If Type(_specifier_) is Object, then _referencingScriptOrModule_ is *null*.
-          1. Let _currentRealm_ be the current Realm.
+          1. Let _currentRealm_ be the current Realm Record.
           1. If there exists a Record _record_ in _currentRealm_.[[ModuleMap]] such that _record_.[[ReferencingScriptOrModule]] is _referencingScriptOrModule_ and _record_.[[Specifier]] is _specifier_, then
             1. Return NormalCompletion(_record_.[[ModuleRecord]]).
           1. Assert: Type(_specifier_) is String.
@@ -348,7 +348,7 @@ contributors: Surma, Dan Ehrenberg
             1. Let _pc_ be ! NewPromiseCapability(%Promise%).
             1. Perform ! Call(_pc_.[[Reject]], *undefined*, &laquo; _error_ &raquo;).
             1. Perform FinishDynamicImport(_referencingScriptOrModule_, _specifier_, _promiseCapability_, _pc_.[[Promise]]).
-          1. Let _currentRealm_ be the current Realm.
+          1. Let _currentRealm_ be the current Realm Record.
           1. If there exists a Record _record_ in _currentRealm_.[[ModuleMap]] such that _record_.[[ReferencingScriptOrModule]] is _referencingScriptOrModule_ and _record_.[[Specifier]] is _specifier_, then
             1. Perform _success_().
           1. Else if Type(_specifier_) is Object, then
