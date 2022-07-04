@@ -1,16 +1,16 @@
 # Modules evaluation and caching
 
-This proposal aims to enforce some new guarantees around how module evaluations are cached and in which contexts. While ECMAScript already guarantees that importing the same specifier from the same parent module results in a single evaluation, Module Blocks increases the complexity by separating evaluation module records from compilation module records and permitting compiled module records to be passed between realms. We thus need to extend the idempotency of resolution to handle these new interactions.
+This proposal aims to enforce some new guarantees around how module evaluations are cached and in which contexts. While ECMAScript already guarantees that importing the same specifier from the same script or module results in a single evaluation, Module Blocks increases the complexity by separating evaluation module records from compilation module records and permitting compiled module records to be passed between realms. We thus need to extend the idempotency of resolution to handle these new interactions.
 
 ## Invariants
 
-1. Importing a module with the same string specifier twice from the same file results in a single evaluation (this is already guaranteed by ECMA-262):
+1. Importing a module with the same string specifier twice from the same script or module results in a single evaluation (this is already guaranteed by ECMA-262):
    ```js
    // main.js
    import { check as c1 } from "./file.js";
    import { check as c2 } from "./file.js";
    assert(c1 === c2);
-   
+
    // file.js
    export const check = {};
    ```
@@ -66,7 +66,7 @@ This proposal aims to enforce some new guarantees around how module evaluations 
    // file.js
    export const check = {};
    ```
-3. Importing the same module block twice _from the same Realm_, even if from different modules, results in a single evaluation:
+3. Importing the same module block twice _from the same Realm_, even if from different scripts or modules, results in a single evaluation:
    ```js
    globalThis.count = 0;
    const mod = module { globalThis.count++; };
