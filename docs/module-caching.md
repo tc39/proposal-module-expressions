@@ -1,10 +1,10 @@
 # Modules evaluation and caching
 
-This proposal aims to enforce some guarantees about how many times modules are evaluated and in which contexts. ECMAScript already guarantees that importing the same module from the same file results in a single evaluation, but Module Blocks increase the complexity because they can be passed around.
+This proposal aims to enforce some new guarantees around how module evaluations are cached and in which contexts. While ECMAScript already guarantees that importing the same specifier from the same parent module results in a single evaluation, Module Blocks increases the complexity by separating evaluation module records from compilation module records and permitting compiled module records to be passed between realms. We thus need to extend the idempotency of resolution to handle these new interactions.
 
 ## Invariants
 
-1. Importing a module with the same string specifier twice from the same file results in a single evaluation (this is already guaranteed by ecma262):
+1. Importing a module with the same string specifier twice from the same file results in a single evaluation (this is already guaranteed by ECMA-262):
    ```js
    // main.js
    import { check as c1 } from "./file.js";
@@ -131,7 +131,7 @@ This proposal aims to enforce some guarantees about how many times modules are e
 
 ## Invariants enforced by the HTML specification
 
-These invariants cannot be enforced by ecma262, since it doesn't define how cloning works and how string specifiers are resolved. They will be respected by the HTML integration, and the champion group suggests that hosts that have a similar modules model could follow these patterns.
+These invariants cannot be enforced by ECMA-262, since it doesn't define how cloning works and how string specifiers are resolved. They will be respected by the HTML integration, and the champion group suggests that hosts that have a similar modules model could follow these patterns.
 
 7. When serializing&deserializing a module block, the "referrer" used as the base to resolve string specifiers should be kept the same:
    ```js
