@@ -43,7 +43,7 @@ contributors: Surma, Dan Ehrenberg, Caridy Patiño
     <emu-alg>
       1. Let _referencingScriptOrModule_ be GetActiveScriptOrModule().
       1. Let _moduleSource_ be ? OrdinaryObjectCreate(*"%ModuleSource.prototype%"*, « [[ModuleSource]] »).
-      1. Set _moduleSource_.[[ModuleSource]] to ? ParseModuleSource(_body_).
+      1. Set _moduleSource_.[[ModuleSource]] to ? CreateModuleSourceRecord(_body_).
       1. Let _O_ be ? OrdinaryObjectCreate(*"%Module.prototype%"*, « [[Module]], [[ModuleSourceInstance]], [[ImportHook]] »).
       1. Let _moduleRecord_ to ! CreateModuleRecord(_moduleSource_.[[ModuleSource]]).
       1. Set _moduleRecord_.[[ModuleInstance]] to _O_.
@@ -78,57 +78,4 @@ contributors: Surma, Dan Ehrenberg, Caridy Patiño
   <emu-note type="editor">
     The host can make the arrangements to support import.meta and probably to add [[HostDefined]] field on the Module Record. If _referencingScriptOrModule_ is a Module Record, it could be a Module Record associated to another Module Instance, in which case [[ImportMeta]] field can be copied from it.
   </emu-note>
-</emu-clause>
-
-<emu-clause id="sec-modulesource-objects">
-  <h1>ModuleSource Objects</h1>
-  <emu-clause id="sec-modulesource-abstracts">
-    <h1>ModuleSource Abstract Operations</h1>
-    <emu-clause id="sec-parsemodulesource" type="abstract operation">
-      <h1>
-        ParseModuleSource (
-          _sourceText_: ECMAScript source text<ins> or a |Module| Parse Node</ins>,
-        ): a Module Source Record or throw a *SyntaxError* object
-      </h1>
-      <dl class="header">
-        <dt>description</dt>
-        <dd>It creates a Module Source Record based upon <ins></ins>the provided Parse Node, or</ins> the result of parsing _sourceText_ as a |Module|.</dd>
-      </dl>
-      <emu-alg>
-        1. <ins>If _sourceText_ is a Parse Node,</ins>
-          1. <ins>Let _body_ be _sourceText_.</ins>
-        1. <ins>Else,</ins>
-          1. Let _body_ be ParseText(_sourceText_, |Module|).
-        1. If _body_ is a List of errors, throw a *SyntaxError* exception.
-        1. Let _requestedModules_ be the ModuleRequests of _body_.
-        1. Let _importEntries_ be ImportEntries of _body_.
-        1. Let _importedBoundNames_ be ImportedLocalNames(_importEntries_).
-        1. Let _indirectExportEntries_ be a new empty List.
-        1. Let _localExportEntries_ be a new empty List.
-        1. Let _starExportEntries_ be a new empty List.
-        1. Let _exportEntries_ be ExportEntries of _body_.
-        1. For each ExportEntry Record _ee_ of _exportEntries_, do
-          1. If _ee_.[[ModuleRequest]] is *null*, then
-            1. If _ee_.[[LocalName]] is not an element of _importedBoundNames_, then
-              1. Append _ee_ to _localExportEntries_.
-            1. Else,
-              1. Let _ie_ be the element of _importEntries_ whose [[LocalName]] is the same as _ee_.[[LocalName]].
-              1. If _ie_.[[ImportName]] is ~namespace-object~, then
-                1. NOTE: This is a re-export of an imported module namespace object.
-                1. Append _ee_ to _localExportEntries_.
-              1. Else,
-                1. NOTE: This is a re-export of a single name.
-                1. Append the ExportEntry Record { [[ModuleRequest]]: _ie_.[[ModuleRequest]], [[ImportName]]: _ie_.[[ImportName]], [[LocalName]]: *null*, [[ExportName]]: _ee_.[[ExportName]] } to _indirectExportEntries_.
-          1. Else if _ee_.[[ImportName]] is ~all-but-default~, then
-            1. Assert: _ee_.[[ExportName]] is *null*.
-            1. Append _ee_ to _starExportEntries_.
-          1. Else,
-            1. Append _ee_ to _indirectExportEntries_.
-        1. Let _async_ be _body_ Contains `await`.
-        1. NOTE: How should _hostDefined_ be populated if this operation is triggered by the user and whether or not _hostDefined_ should be used for sources created in user land.
-        1. Let _hostDefined_ be *undefined*.
-        1. Return Module Source Record { [[HasTLA]]: _async_, [[ECMAScriptCode]]: _body_, [[RequestedModules]]: _requestedModules_, [[ImportEntries]]: _importEntries_, [[LocalExportEntries]]: _localExportEntries_, [[IndirectExportEntries]]: _indirectExportEntries_, [[StarExportEntries]]: _starExportEntries_, [[HostDefined]]: _hostDefined_ }.
-      </emu-alg>
-    </emu-clause>
-  </emu-clause>
 </emu-clause>
