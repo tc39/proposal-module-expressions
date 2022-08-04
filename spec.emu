@@ -47,14 +47,20 @@ contributors: Surma, Dan Ehrenberg, Caridy Patiño
       1. Let _O_ be ? OrdinaryObjectCreate(*"%Module.prototype%"*, « [[Module]], [[ModuleSourceInstance]], [[ImportHook]] »).
       1. Let _moduleRecord_ to ! CreateModuleRecord(_moduleSource_.[[ModuleSource]]).
       1. Set _moduleRecord_.[[ModuleInstance]] to _O_.
-      1. Let _importHookClosure_ be a new Abstract Closure with parameters (_specifier_) that captures _referencingScriptOrModule_ and performs the following steps when called
-        1. Assert: Type(_specifier_) is String.
-        1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
-        1. Perform HostImportModuleDynamically(_referencingScriptOrModule_, _specifier_, _promiseCapability_).
-        1. Return _promiseCapability_.[[Promise]].
       1. Set _O_.[[Module]] to _moduleRecord_.
       1. Set _O_.[[ModuleSourceInstance]] to _moduleSource_.
-      1. Set _O_.[[ImportHook]] be CreateBuiltinFunction(_importHookClosure_, 1, *""*, &laquo; &raquo;).
+      1. If _referencingScriptOrModule_ is a Module Record whose [[ModuleInstance]] internal slot value is not *undefined*, then
+        1. Let _importHookClosure_ be a new Abstract Closure with parameters (_specifier_) that captures _referencingScriptOrModule_ and performs the following steps when called
+          1. Assert: Type(_specifier_) is String.
+          1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
+          1. Perform HostImportModuleDynamically(_referencingScriptOrModule_, _specifier_, _promiseCapability_).
+          1. Return _promiseCapability_.[[Promise]].
+        1. Let _importHook_ be CreateBuiltinFunction(_importHookClosure_, 1, *""*, &laquo; &raquo;).
+      1. Else,
+        1. NOTE: covers the case of a module block inside a source used to create a Module Instance.
+        1. Let _importHook_ be _referencingScriptOrModule_.[[ModuleInstance]].[[ImportHook]].
+        1. Set _moduleRecord_.[[ImportMeta]] be _referencingScriptOrModule_.[[ImportMeta]].
+      1. Set _O_.[[ImportHook]] be _importHook_.
       1. Perform HostInitializeModuleBlock(_moduleRecord_, _referencingScriptOrModule_).
       1. Return _O_.
     </emu-alg>
