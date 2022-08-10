@@ -49,7 +49,7 @@ contributors: Surma, Dan Ehrenberg, Caridy Patiño
       1. Set _moduleRecord_.[[ModuleInstance]] to _O_.
       1. Set _O_.[[Module]] to _moduleRecord_.
       1. Set _O_.[[ModuleSourceInstance]] to _moduleSource_.
-      1. If _referencingScriptOrModule_ is a Module Record whose [[ModuleInstance]] internal slot value is not *undefined*, then
+      1. If _referencingScriptOrModule_ is not a Module Record or its [[ModuleInstance]] internal slot value is *undefined*, then
         1. Let _importHookClosure_ be a new Abstract Closure with parameters (_specifier_) that captures _referencingScriptOrModule_ and performs the following steps when called
           1. Assert: Type(_specifier_) is String.
           1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
