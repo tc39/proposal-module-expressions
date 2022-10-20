@@ -45,21 +45,44 @@ contributors: Surma, Dan Ehrenberg, Nicolò Ribaudo
       </emu-grammar>
 
       <emu-clause id="sec-module-block-expression-runtime-semantics-evaluation" type="sdo">
-        <h1>Runtime Semantics: Evaluation</h1>
+        <h1><ins>Runtime Semantics: Evaluation</ins></h1>
+        <emu-grammar>ModuleBlockExpression: `module` `{` `}`</emu-grammar>
+        <emu-alg>
+          1. Let _sourceText_ be the source text matched by |ModuleBlockExpression|.
+          1. Return CreateModuleBlockObject(*""*, _sourceText_).
+        </emu-alg>
+
         <emu-grammar>ModuleBlockExpression: `module` `{` ModuleBody `}`</emu-grammar>
         <emu-alg>
-          1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%, &laquo; [[ModuleRecord]], [[SourceText]] &raquo;).
           1. Let _body_ be the source text matched by |ModuleBody|.
+          1. Let _sourceText_ be the source text matched by |ModuleBlockExpression|.
+          1. Return CreateModuleBlockObject(_body_, _sourceText_).
+        </emu-alg>
+
+        <emu-clause id="sec-module-block-expression-CreateModuleBlockObject" type="abstract operation">
+          <h1>
+            <ins>
+              CreateModuleBlockObject (
+                _body_: a String,
+                _sourceText_: a String,
+              ): a ModuleBlock Object
+            </ins>
+          </h1>
+          <dl class="header"></dl>
+
+          <emu-alg>
           1. Let _realm_ be the current Realm Record.
+          1. Let _hostDefined_ be *null*.
           1. Let _currentScriptOrModule_ be GetActiveScriptOrModule().
-          1. If _currentScriptOrModule_ is *null*, let _hostDefined_ be *null*.
-          1. Else, let _hostDefined_ be _currentScriptOrModule_.[[HostDefined]].
+          1. If _currentScriptOrModule_ is not *null*, set _hostDefined_ to _currentScriptOrModule_.[[HostDefined]].
           1. Let _moduleRecord_ be ParseModule(_body_, _realm_, _hostDefined_).
           1. Assert: _moduleRecord_ is a Module Record, because parse errors would have been reported when parsing the outer script or module.
+          1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%, &laquo; [[ModuleRecord]], [[SourceText]] &raquo;).
           1. Set _moduleBlock_.[[ModuleRecord]] to _moduleRecord_.
-          1. Set _moduleBlock_.[[SourceText]] to the source text matched by |ModuleBlockExpression|.
+          1. Set _moduleBlock_.[[SourceText]] to _sourceText_.
           1. Return _moduleBlock_.
-        </emu-alg>
+          </emu-alg>
+        </emu-clause>
       </emu-clause>
     </emu-clause>
   </emu-clause>
@@ -80,13 +103,12 @@ contributors: Surma, Dan Ehrenberg, Nicolò Ribaudo
           1. Let _argRef_ be ? Evaluation of |AssignmentExpression|.
           1. Let _specifier_ be ? GetValue(_argRef_).
           1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
-          1. Let _state_ be a new ModuleLoadState Record { [[Action]]: ~dynamic-import~, [[PromiseCapability]]: _promiseCapability_ }.
           1. <ins>If Type(_specifier_) is Object and _specifier_ has a [[ModuleRecord]] internal slot, then</ins>
-            1. <ins>Perform ContinueDynamicImport(_state_, _specifier_.[[ModuleRecord]]).</ins>
+            1. <ins>Perform ContinueDynamicImport(_promiseCapability_, _specifier_.[[ModuleRecord]]).</ins>
           1. <ins>Else,</ins>
             1. Let _specifierString_ be Completion(ToString(_specifier_)).
             1. IfAbruptRejectPromise(_specifierString_, _promiseCapability_).
-            1. Perform HostLoadImportedModule(_referrer_, _specifierString_, *undefined*, _state_).
+            1. Perform HostLoadImportedModule(_referrer_, _specifierString_, ~empty~, _promiseCapability_).
           1. Return _promiseCapability_.[[Promise]].
         </emu-alg>
       </emu-clause>
