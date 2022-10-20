@@ -62,10 +62,10 @@ contributors: Surma, Dan Ehrenberg, Nicolò Ribaudo
         <emu-clause id="sec-module-block-expression-CreateModuleBlockObject" type="abstract operation">
           <h1>
             <ins>
-              CreateModuleBlockObject (
+              CreateModuleObject (
                 _body_: a String,
                 _sourceText_: a String,
-              ): a ModuleBlock Object
+              ): a Module Object
             </ins>
           </h1>
           <dl class="header"></dl>
@@ -77,10 +77,10 @@ contributors: Surma, Dan Ehrenberg, Nicolò Ribaudo
           1. If _currentScriptOrModule_ is not *null*, set _hostDefined_ to _currentScriptOrModule_.[[HostDefined]].
           1. Let _moduleRecord_ be ParseModule(_body_, _realm_, _hostDefined_).
           1. Assert: _moduleRecord_ is a Module Record, because parse errors would have been reported when parsing the outer script or module.
-          1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%, &laquo; [[ModuleRecord]], [[SourceText]] &raquo;).
-          1. Set _moduleBlock_.[[ModuleRecord]] to _moduleRecord_.
-          1. Set _moduleBlock_.[[SourceText]] to _sourceText_.
-          1. Return _moduleBlock_.
+          1. Let _moduleObject_ be OrdinaryObjectCreate(%Module.prototype%, &laquo; [[ModuleRecord]], [[SourceText]] &raquo;).
+          1. Set _moduleObject_.[[ModuleRecord]] to _moduleRecord_.
+          1. Set _moduleObject_.[[SourceText]] to _sourceText_.
+          1. Return _moduleObject_.
           </emu-alg>
         </emu-clause>
       </emu-clause>
@@ -119,44 +119,44 @@ contributors: Surma, Dan Ehrenberg, Nicolò Ribaudo
 <emu-clause id="sec-fundamental-objects" number="20">
   <h1>Fundamental Objects</h1>
 
-  <emu-clause id="sec-moduleblock-objects" number="6">
-    <h1><ins>ModuleBlock Objects</ins></h1>
+  <emu-clause id="sec-module-objects" number="6">
+    <h1><ins>Module Objects</ins></h1>
 
-    <emu-clause id="sec-moduleblock-constructor">
-      <h1>The ModuleBlock Constructor</h1>
-      <p>The ModuleBlock constructor:</p>
+    <emu-clause id="sec-module-constructor">
+      <h1>The Module Constructor</h1>
+      <p>The Module constructor:</p>
       <ul>
-        <li>is <dfn>%ModuleBlock%</dfn>.</li>
-        <li>is the initial value of the *"ModuleBlock"* property of the global object.</li>
+        <li>is <dfn>%Module%</dfn>.</li>
+        <li>is the initial value of the *"Module"* property of the global object.</li>
         <li>is not intended to be called as a function and will throw an exception when called in that manner.</li>
-        <li>is not intended to be used with the `new` operator or to be subclassed. It may be used as the value of an `extends` clause of a class definition but a `super` call to the ModuleBlock constructor will cause an exception.</li>
+        <li>is not intended to be used with the `new` operator or to be subclassed. It may be used as the value of an `extends` clause of a class definition but a `super` call to the Module constructor will cause an exception.</li>
       </ul>
 
-      <emu-clause id="sec-moduleblock">
-        <h1>ModuleBlock ( _body_ )</h1>
+      <emu-clause id="sec-module">
+        <h1>Module ( _body_ )</h1>
         <emu-alg>
           1. Throw a *TypeError* exception.
         </emu-alg>
       </emu-clause>
 
-      <emu-clause id="sec-moduleblock.prototype">
-        <h1>ModuleBlock.prototype</h1>
-        <p>The initial value of `ModuleBlock.prototype` is the ModuleBlock prototype object.</p>
+      <emu-clause id="sec-module.prototype">
+        <h1>Module.prototype</h1>
+        <p>The initial value of `Module.prototype` is the Module prototype object.</p>
         <p>This property has the attributes { [[Writable]]: *false*, [[Enumerable]]: *false*, [[Configurable]]: *false* }.</p>
       </emu-clause>
     </emu-clause>
 
-    <emu-clause id="sec-properties-of-the-moduleblock-prototype-object">
-      <h1>Properties of the ModuleBlock Prototype Object</h1>
-      <p>The <dfn>ModuleBlock prototype object</dfn>:</p>
+    <emu-clause id="sec-properties-of-the-module-prototype-object">
+      <h1>Properties of the Module Prototype Object</h1>
+      <p>The <dfn>Module prototype object</dfn>:</p>
       <ul>
-        <li>is <dfn>%ModuleBlock.prototype%</dfn>.</li>
+        <li>is <dfn>%Module.prototype%</dfn>.</li>
         <li>has a [[Prototype]] internal slot whose value is %Object.prototype%.</li>
         <li>is an ordinary object.</li>
       </ul>
 
-      <emu-clause id="sec-moduleblock.prototype.tostring">
-        <h1>ModuleBlock.prototype.toString ( )</h1>
+      <emu-clause id="sec-module.prototype.tostring">
+        <h1>Module.prototype.toString ( )</h1>
         <p>The following steps are taken:</p>
         <emu-alg>
           1. Let _module_ be the *this* value.
