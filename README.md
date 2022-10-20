@@ -143,7 +143,8 @@ let workerBlock = module {
   }
 };
 
-let worker = new Worker({type: "module"}).addModule(workerBlock);
+let worker = new Worker({type: "module"});
+worker.addModule(workerBlock);
 worker.onmessage = ({data}) => alert(data);
 worker.postMessage(module { export default function() { return "hello!" } });
 ```
