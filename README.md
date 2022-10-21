@@ -47,7 +47,7 @@ assert(moduleExports.y === 1);
 assert(await import(moduleBlock) === moduleExports);  // cached in the module map
 ```
 
-Importing a module block needs to be async, as module blocks may import other modules from the network. Module blocks may get imported multiple times, but will get cached in the module map and will return a reference to the same module.
+Importing a module block needs to be async, as module blocks may import other modules from the network. Module blocks may get imported multiple times, but will get cached in the module map and will return a reference to the same module. You can read more about the caching behavior in [_Modules evaluation and caching_](./docs/module-caching.md).
 
 Module blocks are only imported through dynamic `import()`, and not through `import` statements, as there is no way to address them as a specifier string.
 
