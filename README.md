@@ -1,6 +1,6 @@
 # Module Expressions
 
-Module expressions (previously known as “module blocks”) are an effort by [Surma][surma], [Daniel Ehrenberg] and [Nicolò Ribaudo]. It is the result of a lot of collaboration and prior art, most notably [Daniel Ehrenberg], [Justin Fagnani]’s [Inline Modules] proposal and [Domenic][domenic denicola]’s and [Surma][surma]'s [Blöcks] proposal.
+Module expressions (previously known as “module blocks”) are an effort by [Surma][surma], [Daniel Ehrenberg], and [Nicolò Ribaudo]. It is the result of a lot of collaboration and prior art, most notably [Daniel Ehrenberg], [Justin Fagnani]’s [Inline Modules] proposal and [Domenic][domenic denicola]’s and [Surma][surma]'s [Blöcks] proposal.
 
 ## Problem space
 
