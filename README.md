@@ -1,6 +1,6 @@
-# JS Module Blocks
+# Module Expressions
 
-JS Module Blocks (“module blocks”) are an effort by [Surma][surma]. It is the result of a lot of collaboration and prior art, most notably [Daniel Ehrenberg], [Justin Fagnani]’s [Inline Modules] proposal and [Domenic][domenic denicola]’s and [Surma][surma]'s [Blöcks] proposal.
+Module expressions (previously known as “module blocks”) are an effort by [Surma][surma], [Daniel Ehrenberg] and [Nicolò Ribaudo]. It is the result of a lot of collaboration and prior art, most notably [Daniel Ehrenberg], [Justin Fagnani]’s [Inline Modules] proposal and [Domenic][domenic denicola]’s and [Surma][surma]'s [Blöcks] proposal.
 
 ## Problem space
 
@@ -31,34 +31,34 @@ Any library that wants to make use of one of these APIs faces yet another additi
 
 There is also the long-standing problem that JavaScript cannot represent a “task” in a way that can be shared across realms without having to deal with _at least_ one of the above problems. This has prevented any [attempt][scheduler api] at building a scheduler for the web (á la GCD) to go beyond the main thread, which is one of the main ergonomic benefits of schedulers.
 
-Module blocks aims to significantly improve the situation with the introduction of one, minimally invasive addition to the language and its integration into the HTML standard.
+Module expressions aims to significantly improve the situation with the introduction of one, minimally invasive addition to the language and its integration into the HTML standard.
 
 ## High-level
 
-Module blocks are syntax for the contents of a module, which can then be imported.
+Module expressions are syntax for the contents of a module: they evaluate to a Module object.
 
 ```js
-let moduleBlock = module {
+let mod = module {
   export let y = 1;
 };
-let moduleExports = await import(moduleBlock);
+let moduleExports = await import(mod);
 assert(moduleExports.y === 1);
 
-assert(await import(moduleBlock) === moduleExports);  // cached in the module map
+assert(await import(mod) === moduleExports);  // cached in the module map
 ```
 
-Importing a module block needs to be async, as module blocks may import other modules from the network. Module blocks may get imported multiple times, but will get cached in the module map and will return a reference to the same module.
+Importing a Module object needs to be async, as Module objects may import other modules from the network. Module objects may get imported multiple times, but will get cached in the module map and will return a reference to the same module namespace.
 
-Module blocks are only imported through dynamic `import()`, and not through `import` statements, as there is no way to address them as a specifier string.
+Module objects can only be imported through dynamic `import()`, and not through `import` statements, as there is no way to address them using a specifier string.
 
-Relative import statements are resolved against with the path of the _declaring_ module. This is especially important when sending module blocks to other realms.
+Relative import statements are resolved against with the path of the _outer_ module. This is especially important when importing Module objects from different files or different realms.
 
 ## Syntax details
 
 ```
-PrimaryExpression :  ModuleBlockExpression
+PrimaryExpression :  ModuleExpression
 
-ModuleBlockExpression : `module` [no LineTerminator here] `{` ModuleBody? `}`
+ModuleExpression : `module` [no LineTerminator here] `{` ModuleBody? `}`
 ```
 
 As `module` is not a keyword in JavaScript, no newline is permitted after `module`.
@@ -67,7 +67,7 @@ As `module` is not a keyword in JavaScript, no newline is permitted after `modul
 
 (HTML Integration is in progress in [this PR](https://github.com/whatwg/html/pull/7009).)
 
-There are 4 main integration points in the HTML spec for Module Blocks:
+There are 4 main integration points in the HTML spec for Module objects:
 
 ### Worklets
 
@@ -77,11 +77,11 @@ There are 4 main integration points in the HTML spec for Module Blocks:
 CSS.paintWorklet.addModule("./my-paint-worklet.js");
 ```
 
-The proposal aims to adjust `addModule` analogously to the Worker constructor to accept a Module Block.
+The proposal aims to adjust `addModule` analogously to the Worker constructor to accept a Module object.
 
 ### Structured clone
 
-Module Blocks are structured cloneable, allowing them to be sent via `postMessage()` (to Workers, ServiceWorkers or even other windows).
+Module objects are structured cloneable, allowing them to be sent via `postMessage()` (to Workers, ServiceWorkers or even other windows).
 
 ### `import.meta.url`
 
@@ -89,13 +89,13 @@ Module Blocks are structured cloneable, allowing them to be sent via `postMessag
 
 ```js
 // main.js
-const moduleBlock = module {
+const mod = module {
 	export async function main(url) {
 		return import.meta.url;
 	}
 }
 const worker = new Worker("./module-executor.js");
-worker.postMessage(moduleBlock);
+worker.postMessage(mod);
 worker.onmessage = ({data}) => assert(data == import.meta.url);
 
 // module-executor.js
@@ -107,28 +107,38 @@ addEventListener("message", async ({data}) => {
 
 ### Worker constructor
 
-`new Worker()` currently only accepts a path to a worker file. The proposal originally aimed to also let it accept a Module Block directly (for `{type: "module"}` workers). _This is currently put on hold in favor of the in-flight [Blank Worker proposal](https://github.com/whatwg/html/issues/6911) by Ben Kelly._
+`new Worker()` currently only accepts a path to a worker file. The proposal originally aimed to also let it accept a Module object directly (for `{type: "module"}` workers). _This is currently put on hold in favor of the in-flight [Blank Worker proposal](https://github.com/whatwg/html/issues/6911) by Ben Kelly._
 
 ## Realm interaction
 
-As module blocks behave like module specifiers, they are independent of the Realm where they exist, and they cannot close over any lexically scoped variable outside of the module--they just close over the Realm in which they're imported.
+Module expressions behave similarly to function expressions: they capture the Realm where they are declared. This means that a Module object will always only be evaluated once, even if imported from multiple realms:
 
-For example, in conjunction with the [Realms proposal](https://github.com/tc39/proposal-realms), module blocks could permit syntactically local code to be executed in the context of the module:
+```javascript
+let mod = module { export let x = true; };
+
+let ns = await import(module);
+let ns2 = globalThisFromDifferentRealm.eval("m => import(m)")(module);
+
+assert(ns === ns2);
+```
+
+However, they cannot close over any lexically scoped variable outside of the module: this makes it possible to easily clone them, re-attaching them to a different realm.
+
+For example, in conjunction with the [ShadowRealm proposal](https://github.com/tc39/proposal-shadowrealm), module expressions could permit syntactically local code to be executed in the context of the other realm:
 
 ```js
-let moduleBlock = module {
-  export let o = Object;
+globalThis.flag = true;
+
+let mod = module {
+  export let hasFlag = !!globalThis.flag;
 };
 
-let m = await import(moduleBlock);
-assert(m.o === Object);
+let m = await import(mod);
+assert(m.hasFlag === true);
 
-let r1 = new Realm();
-let m1 = await r1.import(moduleBlock);
-assert(m1.o === r1.globalThis.Object);
-assert(m1.o !== Object);
-
-assert(m.o !== m1.o);
+let realm = new ShadowRealm();
+let realmHasFlag = await r1.importValue(mod, "hasFlag");
+assert(realmHasFlag === false);
 ```
 
 ## Use with workers
@@ -136,7 +146,7 @@ assert(m.o !== m1.o);
 The most basic version of a off-thread scheduler is to run a worker that receives, imports and executes module blocks:
 
 ```js
-let workerBlock = module {
+let workerModule = module {
   onmessage = async function({data}) {
     let mod = await import(data);
     postMessage(mod.default());
@@ -144,12 +154,12 @@ let workerBlock = module {
 };
 
 let worker = new Worker({type: "module"});
-worker.addModule(workerBlock);
+worker.addModule(workerModule);
 worker.onmessage = ({data}) => alert(data);
 worker.postMessage(module { export default function() { return "hello!" } });
 ```
 
-Maybe it would be possible to store a module block in IndexedDB as well, but this is more debatable, as persistent code could be a security risk.
+Maybe it would be possible to store a Module object in IndexedDB as well, but this is more debatable, as persistent code could be a security risk.
 
 ## Integration with CSP
 
@@ -158,25 +168,24 @@ Content Security Policy (CSP) has two knobs which are relevant to module blocks
 - Turning off `eval`, which also turns off other APIs which parse JavaScript. `eval` is disabled by default.
 - Restricting the set of URLs allowed for sources, which also disables importing data URLs. By default, the set is unlimited.
 
-Modules already allow the no-`eval` condition to be met: As modules are retrieved with `fetch`, they are not considered from `eval`, whether through `new Worker()` or `Realm.prototype.import`. Module blocks follow this: as they are parsed in syntax with the surrounding JavaScript code, they cannot be a vector for injection attacks, and they are not blocked by this condition.
+Modules already allow the no-`eval` condition to be met: as modules are retrieved with `fetch`, they are not considered from `eval`, whether through `new Worker()` or `ShadowRealm.prototype.importValue`. Module expressions follow this: as they are parsed in syntax with the surrounding JavaScript code, they cannot be a vector for injection attacks, and they are not blocked by this condition.
 
-The source list restriction is then applied to modules. The semantics of module blocks are basically equivalent to `data:` URLs, with the distinction that they would always be considered in the sources list (since it's part of a resource that was already loaded as script).
+The source list restriction is then applied to modules. The semantics of module expressions are basically equivalent to `data:` URLs, with the distinction that they would always be considered in the sources list (since it's part of a resource that was already loaded as script).
 
 ## Optimization potential
 
-The hope would be that module blocks are just as optimizable as normal modules that are imported multiple times. For example, one hope would be that, in some engines, bytecode for a module block only needs to be generated once, even as it's imported multiple times in different Realms. However, type feedback and JIT-optimized code should probably be maintained separately for each Realm where the module block is imported, or one module's use would pollute another.
+The hope would be that module expressions are just as optimizable as normal modules that are imported multiple times. For example, one hope would be that, in some engines, bytecode for a module block only needs to be generated once, even as it's structured cloned and re-created multiple times in different Realms. However, type feedback and JIT-optimized code should probably be maintained separately for each Realm where the module block is re-created, or one module's use would pollute another.
 
 ## Support in tools
 
-Module blocks could be transpiled to either data URLs, or to a module in a separate file. Either transformation preserves semantics.
+Module expressions could be transpiled to either data URLs, or to a module in a separate file. Either transformation preserves semantics.
 
 ## Named modules and bundling.
 
-This proposal only allows anonymous module blocks. There are other proposals for named module _bundles_ (with URLs corresponding to the specifier of each JS module), including "[JS Module Bundles]" proposal, and [Web Bundles](https://www.ietf.org/id/draft-yasskin-wpack-bundled-exchanges-03.html). Note that there are significant privacy issues to solve with bundling to permit ad blockers; see [concerns from Brave](https://brave.com/webbundles-harmful-to-content-blocking-security-tools-and-the-open-web/).
+This proposal only allows anonymous module blocks. There are other proposals for named module _bundles_ (with URLs corresponding to the specifier of each JS module), including the [module declarations] proposal, and [Web Bundles](https://www.ietf.org/id/draft-yasskin-wpack-bundled-exchanges-03.html). Note that there are significant privacy issues to solve with bundling to permit ad blockers; see [concerns from Brave](https://brave.com/webbundles-harmful-to-content-blocking-security-tools-and-the-open-web/).
 
 ## TC39 Stage 3 Reviewers
 
-- Nicolò Ribaudo (Invited Expert - Babel)
 - Jordan Harband (Coinbase)
 - Leo Balter (Salesforce)
 - Guy Bedford (OpenJS Foundation)
@@ -185,7 +194,7 @@ This proposal only allows anonymous module blocks. There are other proposals for
 
 ## FAQs
 
-### Can you close over variables? Can you reference values outside the module block?
+### Can you close over variables? Can you reference values outside the module expression?
 
 No. Just like a separate file containing a ES module, you can only reference the global scope and import other modules.
 
@@ -201,12 +210,12 @@ const m = module {
 }
 ```
 
-### Can Module Blocks help with bundling?
+### Can module expressions help with bundling?
 
-At first glance, it may look like Module Blocks could provide a bundling format for simple scenarios like this:
+At first glance, it may look like module expressions could provide a bundling format for simple scenarios like this:
 
 ```js
-const countBlock = module {
+const countModule = module {
   let i = 0;
 
   export function count() {
@@ -215,23 +224,23 @@ const countBlock = module {
   }
 };
 
-const uppercaseBlock = module {
+const uppercaseModule = module {
   export function uppercase(string) {
     return string.toUpperCase();
   }
 };
 
-const { count } = await import(countBlock);
-const { uppercase } = await import(uppercaseBlock);
+const { count } = await import(countModule);
+const { uppercase } = await import(uppercaseModule);
 
 console.log(count()); // 1
 console.log(uppercase("daniel")); // "DANIEL"
 ```
 
-In the _general_ case, however, modules need to refer to each other. For that to work Module Blocks would need to be able to close over modules, which they can’t do:
+In the _general_ case, however, modules need to refer to each other. For that to work Module expressions would need to be able to close over variables, which they can’t do:
 
 ```js
-const countBlock = module {
+const countModule = module {
   let i = 0;
 
   export function count() {
@@ -240,40 +249,67 @@ const countBlock = module {
   }
 };
 
-const uppercaseBlock = module {
+const uppercaseModule = module {
   export function uppercase(string) {
     return string.toUpperCase();
   }
 };
 
-const combinedBlock = module {
-  const { count } = await import(countBlock);
-  const { uppercase } = await import(uppercaseBlock);
+const combinedModule = module {
+  const { count } = await import(countModule);
+  const { uppercase } = await import(uppercaseModule);
 
   console.log(count()); // 1
   console.log(uppercase("daniel")); // "DANIEL"
 };
 
-// ReferenceError as we can't close over countBlock or uppercaseBlock!!
+// ReferenceError as we can't close over countModule or uppercaseModule!!
 ```
 
-To address the bundling problem, Dan Ehrenberg is maintaining a separate [proposal/idea][js module bundles].
+To address the bundling problem, we are working on a separate [module declarations] proposal. With the proposal, the above code can be rewritten to:
+
+```js
+module countModule {
+  let i = 0;
+
+  export function count() {
+    i++;
+    return i;
+  }
+}
+
+module uppercaseModule {
+  export function uppercase(string) {
+    return string.toUpperCase();
+  }
+}
+
+module combinedModule {
+  import { count } from countModule;
+  import { uppercase } from uppercaseModule;
+
+  console.log(count()); // 1
+  console.log(uppercase("daniel")); // "DANIEL"
+}
+```
 
 ### What about Blöcks?
 
-[Blöcks] has been archived. Module blocks is probably a better fit for JavaScript for a bunch of reasons:
+[Blöcks] has been archived. Module expressions are probably a better fit for JavaScript for a bunch of reasons:
 
 - Blöcks was trying to introduce a new type of function. Both imply that you can close over/capture values outside that scope. We tried to allow that in Blöcks (because it is expected) which turned out to be a can of worms.
 - Instead, Modules are well-explored, well-specified and well-understood by tooling, engines and developers. A lot of questions we had to worry about in Blöcks are naturally resolved through prior work in the modules space (e.g a module can only reference the global scope and do imports).
 - Modules already have a caching mechanism.
 
-### What _is_ a Module Block?
+### What _is_ a Module?
 
-We are [still discussing the details](https://github.com/tc39/proposal-js-module-blocks/issues/1), but it’s just an object.
+A Module expression evaluates to an instance of the new `Module` class, similarly to how function expressions evaluate to instances of the `Function` class.
 
-### Are module blocks cached?
+The `Module` class introduced by this proposal is very limited, but the [Compartments proposal](https://github.com/tc39/proposal-compartments) is looking into expanding its capabilities.
 
-It depends on what you mean by “cached”. Module blocks have the same behavior as object literals. Meaning each time a module block is evaluated, a new module block is created.
+### Are module expressions cached?
+
+It depends on what you mean by “cached”. Module expressions have the same behavior as object literals. Meaning each time a module block is evaluated, a new module block is created.
 
 ```js
 const arr = new Array(2);
@@ -284,7 +320,7 @@ console.assert(arr[0] !== arr[1]);
 console.assert(await import(arr[0]) !== await import(arr[1]));
 ```
 
-However, module blocks participate in the module map just like any other module. So every module block can only ever have one instance in the same realm.
+However, Module objects participate in the module map just like any other module. So every expression block can only ever have one instance, unless it's structured cloned.
 
 ```js
 const m1 = module{};
@@ -294,17 +330,17 @@ console.assert(await import(m1) === await import(m2));
 
 ### What about TypeScript?
 
-We've heard concerns from the TypeScript team that it could be difficult to type access to the global object within a module blocks. Unfortunately, this is part of a bigger pattern with TypeScript:
+We've heard concerns from the TypeScript team that it could be difficult to type access to the global object within a module expression. Unfortunately, this is part of a bigger pattern with TypeScript:
 
 It is notoriously difficult to define what kind of scope a TypeScript file should be executed in (Main thread vs worker vs service worker), which is often solved by having multiple `tsconfig.json` files and composited projects. In that scenario, it’s even harder to have code that is shared across these TS projects.
 
 When communicating with a Worker, you already need to force a type on the `event.data` to bring typing to the communication channel.
 
-All in all, it's hard to judge how much worse or more complicated Module Blocks makes the typing situation.
+All in all, it's hard to judge how much worse or more complicated module expressions makes the typing situation.
 
 Nevertheless, we're thinking about this problem and in early discussions with the TypeScript team about possible solutions, such as a TS syntax for annotating the type of the global object for a module block, such as `module<GlobalInterface> { }`
 
-### Should we really allow creation of workers using module blocks?
+### Should we really allow creation of workers using module expressions?
 
 In my opinion: Yes. The requirement that workers are in a separate file is one of the most prominent pieces of feedback about why workers are hard to adopt. That’s why so many resort to Blob URLs or Data URLs, bringing along all kinds of difficulties, especially relating to paths and CSP. The risk here is that people start spawning a lot workers without regards to their cost, but I think the benefits of lowering the barrier to workers as an important performance primitive outweigh the risks. We have an [on-going discussion](https://github.com/tc39/proposal-js-module-blocks/issues/21) about this topic.
 
@@ -312,7 +348,7 @@ In my opinion: Yes. The requirement that workers are in a separate file is one o
 
 ### Greenlet
 
-If you know [Jason Miller’s][developit] [Greenlet] (or my [Clooney]), Module Blocks would be the perfect building block for such off-main-thread scheduler libraries.
+If you know [Jason Miller’s][developit] [Greenlet] (or my [Clooney]), module expressions would be the perfect building block for such off-main-thread scheduler libraries.
 
 ```js
 import greenlet from "new-greenlet";
@@ -339,7 +375,7 @@ const result = await func("/api", "secretToken");
 
 // This is the code that is running in each worker. It accepts
 // a module block via postMessage as an async “task” to run.
-const workerBlock = module {
+const workerModule = module {
   addEventListener("message", async ev => {
     const {args, module} = ev.data;
     const {default: task} = await import(module);
@@ -374,7 +410,7 @@ const workerQueue = new ReadableStream(
       }
       controller.enqueue(
         new Worker({type: "module", name: `worker${this.workersCreated}`})
-          .addModule(workerBlock)
+          .addModule(workerModule)
       );
       this.workersCreated++;
     },
@@ -411,13 +447,14 @@ export default function greenlet(args, module) {
 
 [justin fagnani]: https://twitter.com/justinfagnani
 [daniel ehrenberg]: https://twitter.com/littledan
+[nicolò ribaudo]: https://twitter.com/NicoloRibaudo
 [inline modules]: https://gist.github.com/justinfagnani/d26ba99aec5ffc02264907512c082622
 [domenic denicola]: https://twitter.com/domenic
 [surma]: https://twitter.com/dassurma
 [shu]: https://twitter.com/_shu
 [scheduler api]: https://github.com/WICG/main-thread-scheduling/
 [blöcks]: https://github.com/domenic/proposal-blocks/tree/44668b647c48b116a8643d04e4e80735a3c5b78d
-[js module bundles]: https://gist.github.com/littledan/c54efa928b7e6ce7e69190f73673e2a0
+[module declarations]: https://github.com/tc39/proposal-module-fragments
 [greenlet]: https://github.com/developit/greenlet
 [developit]: https://twitter.com/_developit
 [clooney]: https://github.com/GoogleChromeLabs/clooney
