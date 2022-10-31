@@ -3,7 +3,7 @@
 <link rel="stylesheet" href="./spec.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 <pre class="metadata">
-title: JavaScript Module Blocks
+title: Module Expressions
 stage: 2
 contributors: Surma, Dan Ehrenberg, Nicolò Ribaudo
 </pre>
@@ -30,36 +30,36 @@ contributors: Surma, Dan Ehrenberg, Nicolò Ribaudo
         GeneratorExpression
         AsyncFunctionExpression
         AsyncGeneratorExpression
-        <ins>ModuleBlockExpression</ins>
+        <ins>ModuleExpression</ins>
         RegularExpressionLiteral
         TemplateLiteral[?Yield, ?Await, ~Tagged]
         CoverParenthesizedExpressionAndArrowParameterList[?Yield, ?Await]
     </emu-grammar>
 
-    <emu-clause id="sec-module-block-expression" number="10">
-      <h1><ins>Module Block Expression</ins></h1>
+    <emu-clause id="sec-module-expression" number="10">
+      <h1><ins>Module Expression</ins></h1>
       <h2>Syntax</h2>
       <emu-grammar type="definition">
-        ModuleBlockExpression :
+        ModuleExpression :
           `module` [no LineTerminator here] `{` ModuleBody? `}`
       </emu-grammar>
 
-      <emu-clause id="sec-module-block-expression-runtime-semantics-evaluation" type="sdo">
+      <emu-clause id="sec-module-expression-runtime-semantics-evaluation" type="sdo">
         <h1><ins>Runtime Semantics: Evaluation</ins></h1>
-        <emu-grammar>ModuleBlockExpression: `module` `{` `}`</emu-grammar>
+        <emu-grammar>ModuleExpression: `module` `{` `}`</emu-grammar>
         <emu-alg>
-          1. Let _sourceText_ be the source text matched by |ModuleBlockExpression|.
-          1. Return CreateModuleBlockObject(*""*, _sourceText_).
+          1. Let _sourceText_ be the source text matched by |ModuleExpression|.
+          1. Return CreateModuleObject(*""*, _sourceText_).
         </emu-alg>
 
-        <emu-grammar>ModuleBlockExpression: `module` `{` ModuleBody `}`</emu-grammar>
+        <emu-grammar>ModuleExpression: `module` `{` ModuleBody `}`</emu-grammar>
         <emu-alg>
           1. Let _body_ be the source text matched by |ModuleBody|.
-          1. Let _sourceText_ be the source text matched by |ModuleBlockExpression|.
-          1. Return CreateModuleBlockObject(_body_, _sourceText_).
+          1. Let _sourceText_ be the source text matched by |ModuleExpression|.
+          1. Return CreateModuleObject(_body_, _sourceText_).
         </emu-alg>
 
-        <emu-clause id="sec-module-block-expression-CreateModuleBlockObject" type="abstract operation">
+        <emu-clause id="sec-module-expression-CreateModuleObject" type="abstract operation">
           <h1>
             <ins>
               CreateModuleObject (
