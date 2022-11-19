@@ -147,7 +147,14 @@ contributors: Surma, Dan Ehrenberg, Nicolò Ribaudo
         `export` `default` HoistableDeclaration[~Yield, +Await, +Default]
         `export` `default` ClassDeclaration[~Yield, +Await, +Default]
         `export` `default` [lookahead &notin; { `function`, `async` [no LineTerminator here] `function`, `class`, <ins>`module` [no LineTerminator here] `{`</ins> }] AssignmentExpression[+In, ~Yield, +Await] `;`
+        <ins>`export` `default` ModuleExpression `;`</ins>
     </emu-grammar>
+
+    <emu-note type="editor">
+      <p> The `export` `default` |ModuleExpression| `;` production is necessary for forward-compatibility with the <a href="https://tc39.es/proposal-module-declarations">module declarations</a> proposal, which will replace it with `export` `default` |ModuleDeclaration| `;`.</p>
+      <p>We cannot simply remove the &notin; { `module` `{` } lookahead in the `export` `default` |AssignmentExpression| `;` production, because that would make the following code valid:</p>
+      <pre><code class="javascript">export default module {}.prop;</code></pre>
+    </emu-note>
   </emu-clause>
 </emu-clause>
 
