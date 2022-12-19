@@ -8,10 +8,6 @@ stage: 2
 contributors: Surma, Dan Ehrenberg, Nicolò Ribaudo
 </pre>
 
-<emu-note type="editor">
-  This document is a diff on top of&nbsp;<a href="https://github.com/tc39/ecma262/pull/2905">tc39/ecma262#2905</a>.
-</emu-note>
-
 <emu-clause id="sec-ecmascript-language-expressions" number="13">
   <h1>ECMAScript Language: Expressions</h1>
 

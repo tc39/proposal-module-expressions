@@ -4,8 +4,7 @@
   "scripts": {
     "start": "npm run build-loose -- --watch",
     "build": "npm run build-loose -- --strict",
-    "__TODO__": "Replace ./ecma262-biblio.json with @tc39/ecma262-biblio once tc29/ecma262#2905 is merged",
-    "build-loose": "ecmarkup --load-biblio ./ecma262-biblio.json --verbose spec.emu index.html"
+    "build-loose": "ecmarkup --load-biblio @tc39/ecma262-biblio --verbose spec.emu index.html"
   },
   "homepage": "https://github.com/tc39/proposal-js-module-blocks#readme",
   "repository": {
@@ -14,7 +13,7 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@tc39/ecma262-biblio": "2.1.2462",
+    "@tc39/ecma262-biblio": "2.1.2485",
     "ecmarkup": "^15.0.4"
   }
 }
